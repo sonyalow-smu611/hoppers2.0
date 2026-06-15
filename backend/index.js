@@ -8,10 +8,12 @@ import listRoutes from './src/app/api/lists/route.js'
 import cafeRoutes from './src/app/api/cafes/route.js' 
 import postRoutes from './src/app/api/posts/route.js'
 import userRoutes from './src/app/api/users/route.js'
+import aiRoutes from './src/app/ai.js'
 
 const app = express()
 app.use(cors())
 app.use(express.json())
+app.use('/ai', aiRoutes)
 
 app.get('/', (req, res) => {
   res.send('Hoppers backend is running!')
