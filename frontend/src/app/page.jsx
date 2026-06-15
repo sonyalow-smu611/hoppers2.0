@@ -22,7 +22,8 @@ export default async function HomePage() {
       <h1>Cafes</h1>
       <p>
         {cafeList.map((cafe) => (
-          <div key={cafe.id}>
+          <div>
+            <p>key={cafe.id}</p>
             <h2>{cafe.name}</h2>
             <p>{cafe.description}</p>
           </div>
