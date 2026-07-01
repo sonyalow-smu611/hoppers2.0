@@ -1,14 +1,3 @@
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import Navbar from "@/components/general/Navbar";
 import CafeSheet from "@/components/cafes/CafeSheet";
 
 export default function Dashboard() {
@@ -19,8 +8,6 @@ export default function Dashboard() {
           <CafeSheet />
         </div>
       </main>
-
-
     </div>
   );
 }
