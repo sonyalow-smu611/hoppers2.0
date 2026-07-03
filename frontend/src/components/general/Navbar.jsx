@@ -7,7 +7,8 @@ const links = [
   { href: "/cafes", label: "Cafes" },
   { href: "/feed", label: "Feed" },
   { href: "/saved-list", label: "Saved List" },
-  { href: "/recommender", label: "Recommender" },
+  { href: "/preferences", label: "Recommender" },
+
 ];
 
 export default function Navbar() {
