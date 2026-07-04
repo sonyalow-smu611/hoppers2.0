@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import {
   SidebarInset,
@@ -30,19 +31,21 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <header className="flex h-16 items-center border-b bg-white px-4">
-              <SidebarTrigger />
+        <ClerkProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <header className="flex h-16 items-center border-b bg-white px-4">
+                <SidebarTrigger />
 
-              <div className="flex-1">
-                <Navbar />
-              </div>
-            </header>
-            <div className="flex-1 p-4">{children}</div>
-          </SidebarInset>
-        </SidebarProvider>
+                <div className="flex-1">
+                  <Navbar />
+                </div>
+              </header>
+              <div className="flex-1 p-4">{children}</div>
+            </SidebarInset>
+          </SidebarProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

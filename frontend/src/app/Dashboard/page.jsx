@@ -1,4 +1,5 @@
 import CafeSheet from "@/components/cafes/CafeSheet";
+import { SignOutButton } from "@clerk/nextjs";
 
 export default function Dashboard() {
   return (

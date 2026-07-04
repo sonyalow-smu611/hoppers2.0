@@ -2,25 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useClerk, useUser } from "@clerk/nextjs";
 
 const links = [
   { href: "/cafes", label: "Cafes" },
   { href: "/feed", label: "Feed" },
   { href: "/saved-list", label: "Saved List" },
   { href: "/preferences", label: "Recommender" },
-
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
+  const { isSignedIn } = useUser();
 
   return (
     <nav className="w-full">
       <div className="flex items-center justify-between px-6">
-        <Link
-          href="/"
-          className="text-3xl font-bold tracking-tight"
-        >
+        <Link href="/" className="text-3xl font-bold tracking-tight">
           Hoppers
         </Link>
 
@@ -43,6 +42,17 @@ export default function Navbar() {
               </li>
             );
           })}
+          {isSignedIn && (
+            <li>
+              <button
+                type="button"
+                onClick={() => signOut({ redirectUrl: "/auth/login" })}
+                className="rounded-full px-5 py-2 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                Sign out
+              </button>
+            </li>
+          )}
         </ul>
       </div>
     </nav>
