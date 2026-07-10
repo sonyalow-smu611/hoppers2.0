@@ -36,9 +36,8 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                 itemRefs.current[cafe.id] = el;
               }}
               onClick={() => onSelectCafe(cafe)}
-              className={`w-full p-4 text-left transition ${
-                isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
-              }`}
+              className={`w-full p-4 text-left transition ${isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
+                }`}
             >
               <h3 className="font-semibold leading-snug">
                 {cafe.displayName?.text ?? "Cafe"}
@@ -77,6 +76,16 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                   <Button
                     variant="outline"
                     className="mt-3 h-8 w-full rounded-full text-sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const mapsUrl =
+                        cafe.googleMapsUri ??
+                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          cafe.displayName?.text ?? "Cafe"
+                        )}&query_place_id=${cafe.id}`;
+                      window.open(mapsUrl, "_blank", "noopener,noreferrer");
+                    }}
+
                   >
                     More Info
                   </Button>
