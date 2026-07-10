@@ -31,7 +31,7 @@ export default async function CafeSheet() {
   // this is an array of objects, tags is a string separated by commas
   const cafeList = response.data.cafes;
   console.log(cafeList);
-
+  
   const formattedCafeList = cafeList.map((cafe) => ({
     ...cafe,
     tags: cafe.tags.split(",").map((tag) => tag.trim()),
