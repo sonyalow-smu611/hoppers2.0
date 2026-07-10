@@ -3,6 +3,7 @@ import { useState } from "react";
 import PostCard from "./PostCard";
 import NewPost from "./NewPost";
 
+
 export default function FeedList({ posts = [], onCreatePost, onToggleLike }) {
   // to render NewPost after + button is clicked
   const [modalOpen, setModalOpen] = useState(false);
@@ -12,7 +13,7 @@ export default function FeedList({ posts = [], onCreatePost, onToggleLike }) {
     <div className="relative min-h-screen">
       <div className="max-w-md mx-auto py-4">
         {iterablePosts.map((post) => (
-          <PostCard key={post.id} post={post} onToggleLike={onToggleLike} />
+          <PostCard key={post.username} post={post} onToggleLike={onToggleLike} />
         ))}
       </div>
 

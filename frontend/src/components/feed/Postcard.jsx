@@ -11,7 +11,7 @@ function StarRating({ rating }) {
 }
 
 export default function PostCard({ post, onToggleLike }) {
-  const { id, username, caption, rating, cafeName, foodOrdered, location, likes } = post;
+  const { username, caption, rating, cafeName, foodOrdered, location } = post;
 
   return (
     <div className="border rounded-lg p-4 mb-4 shadow-sm bg-white">
@@ -29,12 +29,12 @@ export default function PostCard({ post, onToggleLike }) {
       </div>
 
       {/* Likes */}
-      <button
+      {/* <button
         onClick={() => onToggleLike(id)}
         className="mt-3 flex items-center gap-1 text-red-500"
       >
         ❤️ {likes}
-      </button>
+      </button> */}
     </div>
   );
 }
