@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 
 const links = [
-  { href: "/cafes", label: "Cafes" },
   { href: "/feed", label: "Feed" },
   { href: "/saved-list", label: "Saved List" },
   { href: "/preferences", label: "Recommender" },
