@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import PostCard from "./PostCard";
 import NewPost from "./NewPost";
+import PostCard from "../feed/Postcard"
 
 export default function FeedList({ posts = [], onCreatePost, onToggleLike }) {
   // to render NewPost after + button is clicked

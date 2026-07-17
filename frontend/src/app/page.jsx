@@ -7,7 +7,7 @@ export default function MapPage() {
       <div className="mx-auto max-w-5xl space-y-6">
         <SearchBar/>
 
-        {/* <Map /> */}
+        <Map />
       </div>
     </main>
   );
