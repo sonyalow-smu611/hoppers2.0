@@ -1,45 +1,44 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
-import "../../data/data.json"
+// import "../../../public/data.json"
 
 export default function SearchBar() {
-  const [data, setData] = useState([]);
+  const [cafes, setCafes] = useState([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
 
-  // Load JSON "database" once
   useEffect(() => {
-    fetch("../../data/data.json")
+    fetch("../../../public/data.json")
       .then((res) => res.json())
-      .then((json) => setData(json));
+      .then((json) => setCafes(json));
   }, []);
 
-  // Filter whenever query changes
   useEffect(() => {
     if (!query) {
       setResults([]);
       return;
     }
-    const filtered = data.filter((item) =>
-      item.name.toLowerCase().includes(query.toLowerCase())
+    const filtered = cafes.filter((cafe) =>
+      cafe.displayName.text.toLowerCase().includes(query.toLowerCase()),
     );
     setResults(filtered);
-  }, [query, data]);
+  }, [query, cafes]);
 
   return (
     <div>
       <input
         type="text"
-        placeholder="Search..."
+        placeholder="Search cafes..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      <ul>
-        {results.map((item) => (
-          <li key={item.id}>{item.name}</li>
+      <ul className="font-medium">
+        {results.map((cafe) => (
+          <li key={cafe.id}>
+            {cafe.displayName.text} — {cafe.formattedAddress} (⭐ {cafe.rating})
+          </li>
         ))}
       </ul>
     </div>
   );
 }
-

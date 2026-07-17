@@ -15,6 +15,23 @@ export default function MapComponent() {
   const [cafes, setCafes] = useState([]);
   const [selectedCafe, setSelectedCafe] = useState(null);
 
+  const [allCafes, setAllCafes] = useState([]);
+  const [query, setQuery] = useState("");
+  const [filteredCafe, setFilteredCafe] = useState(null);
+
+  // Load the full cafe list once
+  useEffect(() => {
+    fetch("/data.json")
+      .then((res) => res.json())
+      .then((json) => setAllCafes(json));
+  }, []);
+
+  const filteredCafes = query
+    ? allCafes.filter((cafe) =>
+        cafe.displayName?.text?.toLowerCase().includes(query.toLowerCase()),
+      )
+    : allCafes;
+
   async function fetchNearbyCafes(lat, lng) {
     const response = await fetch(
       "https://places.googleapis.com/v1/places:searchNearby",
@@ -39,7 +56,7 @@ export default function MapComponent() {
             },
           },
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -66,17 +83,24 @@ export default function MapComponent() {
         console.log("Location error:", error);
         setCenter(defaultCenter);
         fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
-      }
+      },
     );
   }, []);
 
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+      <input
+        type="text"
+        placeholder="Search cafes..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="rounded-lg border p-2"
+      />
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         <CafeSidebar
-          cafes={cafes}
-          selectedCafe={selectedCafe}
-          onSelectCafe={setSelectedCafe}
+          cafes={filteredCafes}
+          selectedCafe={filteredCafe}
+          onSelectCafe={setFilteredCafe}
         />
 
         <div className="relative h-[600px] w-full">

@@ -3,19 +3,25 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "../../api";
 import FeedList from "@/components/feed/FeedList";
+import postData from "../../../public/postdata.json"
 
 export default function Page() {
   const { getToken } = useAuth();
-  const [posts, setPosts] = useState([]);
+  // const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchPosts() {
-      const token = await getToken();
-      const res = await api.get("/posts", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPosts(Array.isArray(res.data?.posts) ? res.data.posts : []);
+      // const token = await getToken();
+      // const res = await api.get("/posts", {
+      //   headers: { Authorization: `Bearer ${token}` },
+      // });
+
+      // const data = res.data
+
+      // console.log(data)
+
+      // setPosts(Array.isArray(postData?.posts) ? postData : []);
       setLoading(false);
     }
     fetchPosts();
@@ -43,11 +49,13 @@ export default function Page() {
 
   if (loading) return <div>Loading...</div>;
 
+
   return (
-    <FeedList
-      posts={posts}
+      <FeedList
+      posts={postData}
       onCreatePost={handleCreatePost}
       onToggleLike={handleToggleLike}
     />
+
   );
 }
