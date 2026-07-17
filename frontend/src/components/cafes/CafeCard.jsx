@@ -28,13 +28,43 @@ export default function CafeCard({ cafe }) {
       <Carousel>
         <CarouselContent>
           <CarouselItem>
-            <img src={picture} alt={name} />
+            {picture ? (
+              <img
+                src={picture}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-200">
+                <p className="text-sm text-gray-500">No image available</p>
+              </div>
+            )}
           </CarouselItem>
           <CarouselItem>
-            <img src={picture} alt={name} />
+            {picture ? (
+              <img
+                src={picture}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-200">
+                <p className="text-sm text-gray-500">No image available</p>
+              </div>
+            )}
           </CarouselItem>
           <CarouselItem>
-            <img src={picture} alt={name} />
+            {picture ? (
+              <img
+                src={picture}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-200">
+                <p className="text-sm text-gray-500">No image available</p>
+              </div>
+            )}
           </CarouselItem>
         </CarouselContent>
         <CarouselPrevious />
