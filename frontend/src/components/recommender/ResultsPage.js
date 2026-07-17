@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cafes } from "@/data/mockcafe";
+import api from "@/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,13 @@ const BUDGET_LABELS = { 1: "Under $15 / pax", 2: "$15–$30 / pax", 3: "$30+ / p
 const PURPOSE_LABELS = {
   study: "📚 Studying", dining: "🍽️ Casual dining",
   meetup: "💬 Meetup", birthday: "🎂 Birthday", photo: "📸 Aesthetic",
+};
+const PRICE_LEVELS = {
+  PRICE_LEVEL_FREE: 0,
+  PRICE_LEVEL_INEXPENSIVE: 1,
+  PRICE_LEVEL_MODERATE: 2,
+  PRICE_LEVEL_EXPENSIVE: 3,
+  PRICE_LEVEL_VERY_EXPENSIVE: 4,
 };
 
 function StarRating({ score }) {
@@ -24,29 +31,33 @@ function StarRating({ score }) {
   );
 }
 
-function scoreCard(cafe, prefs) {
-  let score = 0;
-  if (prefs.budget && cafe.budget <= prefs.budget) score += 2;
-  if (cafe.distance <= prefs.distance) score += 2;
-  prefs.purposes.forEach((p) => { if (cafe.purposes.includes(p)) score += 1; });
-  return Math.min(5, Math.round((score / (4 + prefs.purposes.length)) * 5));
-}
-
 export default function ResultsPage() {
   const [prefs, setPrefs] = useState(null);
   const [saved, setSaved] = useState([]);
-  const [ranked, setRanked] = useState([]);
+  const [recommended, setRecommended] = useState([]);
+  const [others, setOthers] = useState([]);
+  const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("cafePrefs");
-    if (stored) {
-      const p = JSON.parse(stored);
-      setPrefs(p);
-      const scored = cafes
-        .map((c) => ({ ...c, score: scoreCard(c, p) }))
-        .sort((a, b) => b.score - a.score);
-      setRanked(scored);
+    if (!stored) {
+      setLoading(false);
+      return;
     }
+    const p = JSON.parse(stored);
+    setPrefs(p);
+
+    api
+      .post("/api/recommend", { preferences: p })
+      .then((res) => {
+        setRecommended(res.data.recommended ?? []);
+        setOthers(res.data.others ?? []);
+        setMessage(res.data.message ?? null);
+      })
+      .catch(() => setError("Couldn't load recommendations. Please try again."))
+      .finally(() => setLoading(false));
   }, []);
 
   function toggleSave(id) {
@@ -56,9 +67,8 @@ export default function ResultsPage() {
   }
 
   if (!prefs) return <p className="p-8 text-muted-foreground">Loading...</p>;
-
-  const top3 = ranked.slice(0, 3);
-  const rest = ranked.slice(3);
+  if (loading) return <p className="p-8 text-muted-foreground">Finding cafes near you...</p>;
+  if (error) return <p className="p-8 text-red-600">{error}</p>;
 
   return (
     <div className="max-w-md mx-auto px-4 py-8">
@@ -72,27 +82,37 @@ export default function ResultsPage() {
         <Badge variant="outline">🗺️ Within {prefs.distance} km</Badge>
       </div>
 
-      {/* Top 3 */}
-      <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">
-        Top picks
-      </p>
-      {top3.map((cafe, i) => (
-        <CafeResultCard
-          key={cafe.id}
-          cafe={cafe}
-          rank={i + 1}
-          isSaved={saved.includes(cafe.id)}
-          onSave={() => toggleSave(cafe.id)}
-        />
-      ))}
+      {message && (
+        <p className="text-sm text-muted-foreground mb-6 p-3 rounded-md bg-muted">
+          {message}
+        </p>
+      )}
+
+      {/* Top picks */}
+      {recommended.length > 0 && (
+        <>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">
+            Top picks
+          </p>
+          {recommended.map((cafe, i) => (
+            <CafeResultCard
+              key={cafe.id}
+              cafe={cafe}
+              rank={i + 1}
+              isSaved={saved.includes(cafe.id)}
+              onSave={() => toggleSave(cafe.id)}
+            />
+          ))}
+        </>
+      )}
 
       {/* Rest */}
-      {rest.length > 0 && (
+      {others.length > 0 && (
         <>
           <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mt-6 mb-3">
             More cafes
           </p>
-          {rest.map((cafe) => (
+          {others.map((cafe) => (
             <CafeResultCard
               key={cafe.id}
               cafe={cafe}
@@ -102,12 +122,17 @@ export default function ResultsPage() {
           ))}
         </>
       )}
+
+      {recommended.length === 0 && others.length === 0 && (
+        <p className="text-sm text-muted-foreground">No cafes found.</p>
+      )}
     </div>
   );
 }
 
 function CafeResultCard({ cafe, rank, isSaved, onSave }) {
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.name + " cafe")}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.address || cafe.name)}`;
+  const priceLevel = PRICE_LEVELS[cafe.priceLevel];
 
   return (
     <Card className={`p-4 mb-3 flex gap-3 ${rank ? "border-2 border-blue-200" : ""}`}>
@@ -121,9 +146,11 @@ function CafeResultCard({ cafe, rank, isSaved, onSave }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
           <p className="font-medium text-sm">{cafe.name}</p>
-          <StarRating score={cafe.score} />
+          <StarRating score={Math.round(cafe.matchScore ?? cafe.rating ?? 0)} />
         </div>
-        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{cafe.body}</p>
+        {cafe.summary && (
+          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{cafe.summary}</p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -141,7 +168,9 @@ function CafeResultCard({ cafe, rank, isSaved, onSave }) {
           </a>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {"$".repeat(cafe.budget)} · {cafe.distance} km away
+          {priceLevel != null ? "$".repeat(priceLevel) || "Free" : ""}
+          {priceLevel != null && cafe.distanceKm != null ? " · " : ""}
+          {cafe.distanceKm != null ? `${cafe.distanceKm} km away` : ""}
         </p>
       </div>
     </Card>
