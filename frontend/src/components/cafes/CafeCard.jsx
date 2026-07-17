@@ -38,7 +38,7 @@ export default function CafeCard({ cafe }) {
               <div className="flex h-full w-full items-center justify-center bg-gray-200">
                 <p className="text-sm text-gray-500">No image available</p>
               </div>
-            )}
+            )} 
           </CarouselItem>
           <CarouselItem>
             {picture ? (
