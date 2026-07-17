@@ -11,30 +11,43 @@ function StarRating({ rating }) {
 }
 
 export default function PostCard({ post, onToggleLike }) {
-  const { username, caption, rating, cafeName, foodOrdered, location } = post;
+  const { id, rating, text_review, visited_at, photos, comments } = post;
+
+  // format the date to be human readable e.g. "10 May 2026, 9:15 AM"
+  const formattedDate = new Date(visited_at).toLocaleString("en-SG", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="border rounded-lg p-4 mb-4 shadow-sm bg-white">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="font-semibold">{username}</span>
-      </div>
 
-      <p className="mb-2">{caption}</p>
+      {/* Rating */}
       <StarRating rating={rating} />
 
-      <div className="text-sm text-gray-600 mt-2">
-        <p className="font-medium">{cafeName}</p>
-        <p>{foodOrdered}</p>
-        <p>{location}</p>
-      </div>
+      {/* Review text */}
+      <p className="mt-2 mb-2">{text_review}</p>
 
-      {/* Likes */}
-      {/* <button
-        onClick={() => onToggleLike(id)}
-        className="mt-3 flex items-center gap-1 text-red-500"
-      >
-        ❤️ {likes}
-      </button> */}
+      {/* Photo */}
+      {photos && (
+        <img
+          src={photos}
+          alt="Review photo"
+          className="w-full rounded-lg object-cover max-h-60 mb-2"
+        />
+      )}
+
+      {/* Comments / caption */}
+      {comments && (
+        <p className="text-sm text-gray-500 italic">"{comments}"</p>
+      )}
+
+      {/* Visited date */}
+      <p className="text-xs text-gray-400 mt-2">📅 Visited: {formattedDate}</p>
+
     </div>
   );
 }
