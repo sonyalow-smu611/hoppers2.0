@@ -69,7 +69,12 @@ export default function ResultsPage() {
         setOthers(res.data.others ?? []);
         setMessage(res.data.message ?? null);
       })
-      .catch(() => setError("Couldn't load recommendations. Please try again."))
+      .catch((err) =>
+        setError(
+          err.response?.data?.error ??
+            "Couldn't load recommendations. Please try again.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -79,18 +84,13 @@ export default function ResultsPage() {
     async function fetchSavedPlaces() {
       try {
         const token = await getToken();
-        const res = await fetch("http://localhost:4000/lists/saved-list", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await api.get("/lists/saved-list", {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch saved cafes");
-
-        const data = await res.json();
-        const savedIds = data.savedPlaces
-          .map((place) => Number(place.cafe_id ?? place.cafes?.id))
-          .filter((id) => Number.isFinite(id));
+        const savedIds = res.data.savedPlaces
+          .map((place) => place.notes || place.cafe_id || place.cafes?.id)
+          .filter(Boolean);
 
         setSaved(savedIds);
       } catch (err) {
@@ -118,25 +118,18 @@ export default function ResultsPage() {
 
     try {
       const token = await getToken();
-      const res = isCurrentlySaved
-        ? await fetch(`http://localhost:4000/lists/saved-list/${id}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-        : await fetch("http://localhost:4000/lists/saved-list", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ cafe_id: id }),
-          });
-
-      if (!res.ok) {
-        throw new Error(
-          isCurrentlySaved ? "Failed to unsave cafe" : "Failed to save cafe",
+      if (isCurrentlySaved) {
+        await api.delete(`/lists/saved-list/${encodeURIComponent(id)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        const cafe = [...recommended, ...others].find((cafe) => cafe.id === id);
+        await api.post(
+          "/lists/saved-list",
+          { cafe_id: id, cafe },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
         );
       }
     } catch (err) {

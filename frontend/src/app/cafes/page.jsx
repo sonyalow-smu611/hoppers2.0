@@ -2,9 +2,14 @@ import CafeList from "../../components/cafes/CafeList";
 import api from "../../api";
 
 export default async function Cafes() {
-  const response = await api.get("http://localhost:4000/cafes");
-  const cafeList = response.data.cafes;
-  console.log(cafeList);
+  let cafeList = [];
+
+  try {
+    const response = await api.get("/cafes");
+    cafeList = response.data.cafes ?? [];
+  } catch (err) {
+    console.error("Failed to load cafes:", err.message);
+  }
 
   const formattedCafeList = cafeList.map((cafe) => ({
     ...cafe,

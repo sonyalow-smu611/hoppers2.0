@@ -14,12 +14,18 @@ import { searchNearbyCafes } from "./lib/places.js";
 
 const router = express.Router();
 
-const client = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
-
 const TOP_N = 3; // how many cafes the AI features as "best matches"
+
+function getClient() {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    return null;
+  }
+
+  return new OpenAI({
+    baseURL: "https://api.deepseek.com",
+    apiKey: process.env.DEEPSEEK_API_KEY,
+  });
+}
 
 // --- Straight-line (Haversine) distance between two {lat, lng} points, in km ---
 function distanceKm(a, b) {
@@ -63,6 +69,8 @@ function prepareCafes(cafes, preferences) {
     id: c.id,
     name: c.displayName?.text ?? c.name,
     address: c.formattedAddress,
+    latitude: c.location?.latitude,
+    longitude: c.location?.longitude,
     rating: c.rating,
     userRatingCount: c.userRatingCount,
     priceLevel: c.priceLevel,
@@ -77,6 +85,11 @@ function prepareCafes(cafes, preferences) {
 
 // --- Ask the AI for the top N best matches only ---
 async function pickTopMatches(cafes, preferences) {
+  const client = getClient();
+  if (!client) {
+    return null;
+  }
+
   const prompt = `
 You are a cafe recommendation assistant.
 
@@ -109,6 +122,22 @@ Rank them by match score, highest first. Be specific in each summary.
   const raw = response.choices[0].message.content.trim();
   const clean = raw.replace(/^```json\n?|```$/g, "").trim();
   return JSON.parse(clean); // [{ id, matchScore, summary }]
+}
+
+function fallbackTopMatches(cafes) {
+  return cafes
+    .slice()
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, TOP_N)
+    .map((cafe) => ({
+      id: cafe.id,
+      matchScore: Math.min(5, Math.max(1, Math.round(cafe.rating ?? 3))),
+      summary: "Recommended based on nearby cafe data and rating.",
+    }));
+}
+
+function appendMessage(current, next) {
+  return [current, next].filter(Boolean).join(" ");
 }
 
 router.post("/recommend", async (req, res) => {
@@ -144,8 +173,15 @@ router.post("/recommend", async (req, res) => {
       return res.json({ recommended: [], others: [], message: "No cafes found nearby." });
     }
 
-    // 3) AI picks the top matches
-    const picks = await pickTopMatches(prepared, preferences); // [{id, matchScore, summary}]
+    // 3) AI picks the top matches. If AI is unavailable, keep the page usable.
+    let picks = await pickTopMatches(prepared, preferences); // [{id, matchScore, summary}]
+    if (!picks) {
+      picks = fallbackTopMatches(prepared);
+      message = appendMessage(
+        message,
+        "AI matching is unavailable, so these are ranked by cafe rating.",
+      );
+    }
 
     // 4) Merge AI picks back onto the full cafe data, by id
     const pickedIds = new Set(picks.map((p) => p.id));
@@ -166,9 +202,10 @@ router.post("/recommend", async (req, res) => {
     res.json({ recommended, others, message });
   } catch (err) {
     console.error("Error generating recommendations:", err);
-    res.status(500).json({ error: "Failed to generate recommendations." });
+    res.status(err.statusCode ?? 500).json({
+      error: err.message || "Failed to generate recommendations.",
+    });
   }
 });
 
 export default router;
-
