@@ -17,13 +17,6 @@ export default function MapComponent() {
   const [query, setQuery] = useState("");
   const [filteredCafe, setFilteredCafe] = useState(null);
 
-  // Load the full cafe list once
-  useEffect(() => {
-    fetch("/data.json")
-      .then((res) => res.json())
-      .then((json) => setAllCafes(json));
-  }, []);
-
   const filteredCafes = query
     ? allCafes.filter((cafe) =>
         cafe.displayName?.text?.toLowerCase().includes(query.toLowerCase()),
@@ -59,7 +52,9 @@ export default function MapComponent() {
 
     const data = await response.json();
     console.log("Places API response:", data);
-    setCafes(data.places || []);
+    const places = data.places || [];
+    setAllCafes(places);
+    setCafes(places);
   }
 
   useEffect(() => {
