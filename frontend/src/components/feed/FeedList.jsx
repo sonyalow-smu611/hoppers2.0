@@ -1,12 +1,7 @@
 "use client";
-import { useState } from "react";
 import PostCard from "./Postcard";
-import NewPost from "./NewPost";
 
-
-export default function FeedList({ posts = [], onCreatePost, onToggleLike }) {
-  // to render NewPost after + button is clicked
-  const [modalOpen, setModalOpen] = useState(false);
+export default function FeedList({ posts = [], onToggleLike }) {
   const iterablePosts = Array.isArray(posts) ? posts : [];
 
   return (
@@ -16,16 +11,6 @@ export default function FeedList({ posts = [], onCreatePost, onToggleLike }) {
           <PostCard key={post.id} post={post} onToggleLike={onToggleLike} />
         ))}
       </div>
-
-      <button
-        onClick={() => setModalOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 text-2xl shadow-lg"
-      >
-        +
-      </button>
-      {modalOpen && (
-        <NewPost onSubmit={onCreatePost} onClose={() => setModalOpen(false)} />
-      )}
     </div>
   );
 }

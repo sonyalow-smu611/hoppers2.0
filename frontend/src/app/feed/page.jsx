@@ -1,33 +1,37 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import api from "../../api";
 import FeedList from "@/components/feed/FeedList";
-// import postData from "../../../public/postdata.json"
+import CreatePostModal from "@/components/feed/CreatePostModal";
 
 export default function Page() {
   const { getToken } = useAuth();
-  const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    async function fetchPosts() {
+    let active = true;
+    async function load() {
       try {
         const token = await getToken();
         const res = await api.get("/posts", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setPosts(res.data.posts);
+        if (active) setPosts(res.data.posts);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
-    const postData = fetchPosts();
-  }, [getToken]);
+    load();
+    return () => {
+      active = false;
+    };
+  }, [getToken, reloadKey]);
 
   async function handleToggleLike(postId) {
     const token = await getToken();
@@ -49,17 +53,21 @@ export default function Page() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Feed</h1>
         <button
-          onClick={() => router.push("/feed/create")}
+          onClick={() => setModalOpen(true)}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           + Write a Review
         </button>
       </div>
 
-      <FeedList
-        posts={posts} // just pass posts directly
-        onToggleLike={handleToggleLike}
-      />
+      <FeedList posts={posts} onToggleLike={handleToggleLike} />
+
+      {modalOpen && (
+        <CreatePostModal
+          onClose={() => setModalOpen(false)}
+          onCreated={() => setReloadKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
