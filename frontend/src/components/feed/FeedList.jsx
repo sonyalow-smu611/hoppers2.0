@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
+import PostCard from "./Postcard";
 import NewPost from "./NewPost";
-import PostCard from "../feed/Postcard"
+// import PostCard from "../feed/Postcard"
 
 
 export default function FeedList({
