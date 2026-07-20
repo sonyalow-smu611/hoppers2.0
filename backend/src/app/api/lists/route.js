@@ -1,6 +1,7 @@
 import express from "express";
 import supabase from "../../lib/supabase.js";
 import { getAuth } from "@clerk/express";
+import { getPlacePhotoUrl } from "../../lib/cafeSync.js";
 
 const router = express.Router();
 const SAVED_LIST_TITLE = "Saved Cafes";
@@ -23,12 +24,38 @@ function toPriceRange(priceLevel) {
     return Math.min(Math.max(Math.round(priceLevel), 0), 4);
   }
 
-  return priceRanges[priceLevel] ?? 2;
+  return priceRanges[priceLevel] ?? null;
 }
 
-async function findExistingCafe(cafe) {
-  const name = cafe?.name?.trim();
-  const address = cafe?.address?.trim();
+function getCafeName(cafe) {
+  return cafe?.name?.trim() ?? cafe?.displayName?.text?.trim() ?? "";
+}
+
+function getCafePlaceId({ cafe_id, cafe }) {
+  const numericCafeId = toFiniteNumber(cafe_id);
+
+  if (numericCafeId !== null) {
+    return null;
+  }
+
+  return String(cafe?.place_id ?? cafe?.id ?? cafe_id ?? "").trim() || null;
+}
+
+async function findExistingCafe(cafe, placeId) {
+  if (placeId) {
+    const { data, error } = await supabase
+      .from("cafes")
+      .select("id")
+      .eq("place_id", placeId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data?.id) return data.id;
+  }
+
+  const name = getCafeName(cafe);
+  const address = (cafe?.address ?? cafe?.formattedAddress)?.trim();
 
   if (!name) return null;
 
@@ -49,33 +76,36 @@ async function resolveCafeId({ cafe_id, cafe }) {
     return numericCafeId;
   }
 
-  const name = cafe?.name?.trim();
+  const placeId = getCafePlaceId({ cafe_id, cafe });
+  const name = getCafeName(cafe);
   if (!name) {
     const error = new Error("cafe_id must be numeric, or cafe.name is required");
     error.statusCode = 400;
     throw error;
   }
 
-  const existingId = await findExistingCafe(cafe);
+  const existingId = await findExistingCafe(cafe, placeId);
   if (existingId !== null) {
     return existingId;
   }
 
-  const latitude = toFiniteNumber(cafe.latitude);
-  const longitude = toFiniteNumber(cafe.longitude);
-  const address = cafe.address?.trim() ?? "";
+  const latitude = toFiniteNumber(cafe.latitude ?? cafe.location?.latitude);
+  const longitude = toFiniteNumber(cafe.longitude ?? cafe.location?.longitude);
+  const address = (cafe.address ?? cafe.formattedAddress)?.trim() ?? "";
+  const tags = cafe.types ?? cafe.tags;
 
   const { data, error } = await supabase
     .from("cafes")
     .insert({
+      place_id: placeId,
       name,
       address,
-      description: cafe.summary ?? "",
+      description: cafe.summary ?? cafe.editorialSummary?.text ?? "",
       latitude: latitude ?? 0,
       longitude: longitude ?? 0,
-      picture: cafe.picture ?? "",
+      picture: cafe.picture ?? getPlacePhotoUrl(cafe) ?? "",
       price_range: toPriceRange(cafe.priceLevel),
-      tags: Array.isArray(cafe.types) ? cafe.types.join(", ") : "",
+      tags: Array.isArray(tags) ? tags.join(", ") : "",
     })
     .select("id")
     .single();

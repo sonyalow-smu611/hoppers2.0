@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import "dotenv/config";
 import express from "express";
 import { searchNearbyCafes } from "./lib/places.js";
+import { upsertPlacesAsCafes } from "./lib/cafeSync.js";
 
 const router = express.Router();
 
@@ -140,6 +141,12 @@ function appendMessage(current, next) {
   return [current, next].filter(Boolean).join(" ");
 }
 
+function syncPlacesInBackground(places) {
+  upsertPlacesAsCafes(places).catch((error) => {
+    console.error("Supabase cafe sync error:", error);
+  });
+}
+
 router.post("/recommend", async (req, res) => {
   try {
     const { preferences } = req.body;
@@ -165,6 +172,8 @@ router.post("/recommend", async (req, res) => {
       message = `No cafes found within ${preferences.distance} km. Showing the best matches instead.`;
       prepPreferences = { ...preferences, distance: undefined };
     }
+
+    syncPlacesInBackground(places);
 
     // 2) Deterministic distance filter/sort + slim payload
     const prepared = prepareCafes(places, prepPreferences);
