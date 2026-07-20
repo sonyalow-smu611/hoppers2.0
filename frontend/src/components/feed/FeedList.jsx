@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import PostCard from "./PostCard";
+import PostCard from "./Postcard";
 import NewPost from "./NewPost";
 
 
