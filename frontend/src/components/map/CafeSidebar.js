@@ -4,6 +4,13 @@ import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+const PLACEHOLDER =
+  "https://images.unsplash.com/photo-1554118811-1e0d58224f24";
+
+function getPhotoUrl(photoName) {
+  return `https://places.googleapis.com/v1/${photoName}/media?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&maxWidthPx=400&maxHeightPx=400`;
+}
+
 export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
   const itemRefs = useRef({});
 
@@ -30,7 +37,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
           const isSelected = selectedCafe?.id === cafe.id;
 
           return (
-            <button
+            <div
               key={cafe.id}
               ref={(el) => {
                 itemRefs.current[cafe.id] = el;
@@ -62,16 +69,20 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
               {isSelected && (
                 <div className="mt-4 rounded-xl bg-white p-3 shadow-sm">
                   <img
-                    src="https://images.unsplash.com/photo-1554118811-1e0d58224f24"
+                    src={
+                      cafe.photos?.[0]?.name
+                        ? getPhotoUrl(cafe.photos[0].name)
+                        : PLACEHOLDER
+                    }
                     alt="Cafe"
                     className="h-28 w-full rounded-lg object-cover"
                   />
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  {/* <div className="mt-3 flex flex-wrap gap-2">
                     <Badge variant="secondary">WiFi</Badge>
                     <Badge variant="secondary">Power</Badge>
                     <Badge variant="secondary">Quiet</Badge>
-                  </div>
+                  </div> */}
 
                   <Button
                     variant="outline"
@@ -91,7 +102,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                   </Button>
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
