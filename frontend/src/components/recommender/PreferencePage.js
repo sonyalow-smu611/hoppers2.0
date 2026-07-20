@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
+import { getUserLocation } from "@/utils/location";
+
 
 const PURPOSES = [
   { id: "study", label: "Studying", emoji: "📚" },
@@ -27,6 +29,23 @@ export default function PreferencePage() {
   const [distance, setDistance] = useState(10);
   const [notes, setNotes] = useState("");
 
+  const [location, setLocation] = useState(null);      // holds { lat, lng }
+  const [locError, setLocError] = useState(null);
+  const [locLoading, setLocLoading] = useState(false);
+
+  async function handleUseLocation() {
+    setLocError(null);
+    setLocLoading(true);
+    try {
+      const coords = await getUserLocation();
+      setLocation(coords);
+    } catch (err) {
+      setLocError("Couldn't get your location. Please allow location access in your browser and try again.");
+    } finally {
+      setLocLoading(false);
+    }
+  }
+
   function togglePurpose(id) {
     setPurposes((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -34,7 +53,11 @@ export default function PreferencePage() {
   }
 
   function handleSave() {
-    const prefs = { budget, purposes, distance, notes };
+    if (!location) {
+      setLocError("Please set your location before continuing.");
+      return;
+    }
+    const prefs = { budget, purposes, distance, notes, location };
     localStorage.setItem("cafePrefs", JSON.stringify(prefs));
     router.push("/results");
   }
@@ -110,6 +133,19 @@ export default function PreferencePage() {
           />
           <span className="text-sm font-medium w-14">{distance} km</span>
         </div>
+
+        {/* Location capture — required for the distance filter to work */}
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUseLocation}
+            disabled={locLoading}
+          >
+            📍 {locLoading ? "Getting location…" : location ? "Location set ✓" : "Use my location"}
+          </Button>
+          {locError && <p className="text-xs text-red-600 mt-1">{locError}</p>}
+        </div>
       </div>
 
       {/* Notes */}
@@ -126,7 +162,7 @@ export default function PreferencePage() {
         />
       </div>
 
-      <Button className="w-full" onClick={handleSave}>
+      <Button className="w-full" onClick={handleSave} disabled={!location}>
         Find my cafes ↗
       </Button>
     </div>
