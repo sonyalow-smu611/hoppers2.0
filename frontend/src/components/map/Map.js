@@ -13,8 +13,6 @@ const defaultCenter = {
 export default function MapComponent() {
   const [center, setCenter] = useState(null);
   const [cafes, setCafes] = useState([]);
-  const [selectedCafe, setSelectedCafe] = useState(null);
-
   const [allCafes, setAllCafes] = useState([]);
   const [query, setQuery] = useState("");
   const [filteredCafe, setFilteredCafe] = useState(null);
@@ -124,20 +122,16 @@ export default function MapComponent() {
                   <div className="h-5 w-5 rounded-full border-4 border-white bg-blue-600 shadow-lg" />
                 </AdvancedMarker>
 
-                {cafes.map((cafe) => {
-                  const isSelected = selectedCafe?.id === cafe.id;
-
-                  return (
-                    <AdvancedMarker
-                      key={cafe.id}
-                      position={{
-                        lat: cafe.location.latitude,
-                        lng: cafe.location.longitude,
-                      }}
-                      onClick={() => setSelectedCafe(cafe)}
-                    />
-                  );
-                })}
+                {cafes.map((cafe) => (
+                  <AdvancedMarker
+                    key={cafe.id}
+                    position={{
+                      lat: cafe.location.latitude,
+                      lng: cafe.location.longitude,
+                    }}
+                    onClick={() => setFilteredCafe(cafe)}
+                  />
+                ))}
               </Map>
             </div>
           )}
