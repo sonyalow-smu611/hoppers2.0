@@ -268,11 +268,6 @@ function CafeResultCard({ cafe, rank, isSaved, onSave }) {
               Directions ↗
             </Button>
           </a>
-          <a href={mapsUrl} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="outline" className="text-xs h-7">
-              Find more info ↗
-            </Button>
-          </a>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           {priceLevel != null ? "$".repeat(priceLevel) || "Free" : ""}

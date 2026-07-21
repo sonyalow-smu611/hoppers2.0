@@ -1,5 +1,5 @@
 import express from "express";
-import supabase from "../../lib/supabase.js";
+import supabase, { supabaseServiceRole } from "../../lib/supabase.js";
 import { getAuth } from "@clerk/express";
 import { getPlacePhotoUrl } from "../../lib/cafeSync.js";
 
@@ -94,7 +94,13 @@ async function resolveCafeId({ cafe_id, cafe }) {
   const address = (cafe.address ?? cafe.formattedAddress)?.trim() ?? "";
   const tags = cafe.types ?? cafe.tags;
 
-  const { data, error } = await supabase
+  if (!supabaseServiceRole) {
+    const error = new Error("SUPABASE_SERVICE_ROLE_KEY is required to save a new cafe.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const { data, error } = await supabaseServiceRole
     .from("cafes")
     .insert({
       place_id: placeId,
