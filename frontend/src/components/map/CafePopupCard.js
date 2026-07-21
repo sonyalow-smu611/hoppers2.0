@@ -1,14 +1,15 @@
 "use client";
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
-
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const PLACEHOLDER =
+  "https://images.unsplash.com/photo-1554118811-1e0d58224f24";
+
+function getPhotoUrl(photoName) {
+  return `/cafes/photo?name=${encodeURIComponent(photoName)}`;
+}
 
 export default function CafePopupCard({ cafe, onClose }) {
   return (
@@ -18,17 +19,15 @@ export default function CafePopupCard({ cafe, onClose }) {
       <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
         <Card className="w-80 overflow-hidden rounded-3xl border-0 p-0 shadow-2xl">
           <div className="relative">
-            <Carousel className="w-full">
-              <CarouselContent className="ml-0">
-                <CarouselItem className="pl-0">
-                  <img
-                    src="https://images.unsplash.com/photo-1554118811-1e0d58224f24"
-                    alt="Cafe"
-                    className="h-40 w-full object-cover"
-                  />
-                </CarouselItem>
-              </CarouselContent>
-            </Carousel>
+            <img
+              src={
+                cafe.photos?.[0]?.name
+                  ? getPhotoUrl(cafe.photos[0].name)
+                  : PLACEHOLDER
+              }
+              alt="Cafe"
+              className="h-80 w-full object-cover"
+            />
 
             <button
               onClick={onClose}

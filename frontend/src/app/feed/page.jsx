@@ -3,58 +3,56 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "../../api";
 import FeedList from "@/components/feed/FeedList";
-import postData from "../../../public/postdata.json"
+
 
 export default function Page() {
-  const { getToken } = useAuth();
-  // const [posts, setPosts] = useState([]);
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [posts, setPosts] = useState([]);
+  const [cafes, setCafes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchPosts() {
-      // const token = await getToken();
-      // const res = await api.get("/posts", {
-      //   headers: { Authorization: `Bearer ${token}` },
-      // });
+    async function fetchFeedData() {
+      try {
+        const postsRes = await api.get("/posts");
 
-      // const data = res.data
-
-      // console.log(data)
-
-      // setPosts(Array.isArray(postData?.posts) ? postData : []);
-      setLoading(false);
+        setPosts(Array.isArray(postsRes.data.posts) ? postsRes.data.posts : []);
+        setCafes(Array.isArray(postsRes.data.cafes) ? postsRes.data.cafes : []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load feed.");
+      } finally {
+        setLoading(false);
+      }
     }
-    fetchPosts();
-  }, [getToken]);
+
+    fetchFeedData();
+  }, []);
 
   async function handleCreatePost(formData) {
+    if (!isLoaded || !isSignedIn) {
+      throw new Error("Please sign in to create a post.");
+    }
+
     const token = await getToken();
     const res = await api.post("/posts", formData, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    setPosts((prev) => [res.data, ...prev]);
-  }
 
-  async function handleToggleLike(postId) {
-    const token = await getToken();
-    const res = await api.post(
-      `/posts/${postId}/like`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, likes: res.data.likes } : p))
-    );
+    setPosts((prev) => [res.data, ...prev]);
   }
 
   if (loading) return <div>Loading...</div>;
 
+  if (error) return <div className="p-4 text-sm text-red-600">{error}</div>;
 
   return (
       <FeedList
-      posts={postData}
+      posts={posts}
+      cafes={cafes}
+      isSignedIn={isSignedIn}
       onCreatePost={handleCreatePost}
-      onToggleLike={handleToggleLike}
     />
 
   );

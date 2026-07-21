@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { APIProvider, Map, AdvancedMarker } from "@vis.gl/react-google-maps";
+import api from "@/api";
 
+import { JollySearchField } from "@/components/ui/search-field";
 import CafeSidebar from "./CafeSidebar";
 
 const defaultCenter = {
@@ -10,64 +12,55 @@ const defaultCenter = {
   lng: 103.852119,
 };
 
-export default function MapComponent() {
-  const [center, setCenter] = useState(null);
-  const [cafes, setCafes] = useState([]);
-  const [selectedCafe, setSelectedCafe] = useState(null);
+function withRating(cafe) {
+  return {
+    ...cafe,
+    rating: cafe.rating ?? null,
+  };
+}
 
+export default function MapComponent() {
+  const [center, setCenter] = useState(defaultCenter);
+  const [cafes, setCafes] = useState([]);
   const [allCafes, setAllCafes] = useState([]);
   const [query, setQuery] = useState("");
   const [filteredCafe, setFilteredCafe] = useState(null);
+  const [loadError, setLoadError] = useState("");
 
-  // Load the full cafe list once
-  useEffect(() => {
-    fetch("/data.json")
-      .then((res) => res.json())
-      .then((json) => setAllCafes(json));
-  }, []);
-
-  const filteredCafes = query
+  const filteredCafes = (query
     ? allCafes.filter((cafe) =>
         cafe.displayName?.text?.toLowerCase().includes(query.toLowerCase()),
       )
-    : allCafes;
+    : allCafes
+  ).map(withRating);
 
   async function fetchNearbyCafes(lat, lng) {
-    const response = await fetch(
-      "https://places.googleapis.com/v1/places:searchNearby",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-          "X-Goog-FieldMask":
-            "places.id,places.displayName,places.location,places.rating,places.userRatingCount,places.formattedAddress,places.photos",
-        },
-        body: JSON.stringify({
-          includedTypes: ["cafe"],
-          maxResultCount: 20,
-          locationRestriction: {
-            circle: {
-              center: {
-                latitude: lat,
-                longitude: lng,
-              },
-              radius: 1200,
-            },
-          },
-        }),
-      },
-    );
+    setLoadError("");
 
-    const data = await response.json();
+    const { data } = await api.post("/cafes/sync", {
+      latitude: lat,
+      longitude: lng,
+      radiusMeters: 1200,
+    });
+
     console.log("Places API response:", data);
-    setCafes(data.places || []);
+    const places = (data.cafes || []).map(withRating);
+    setAllCafes(places);
+    setCafes(places);
+  }
+
+  function handleCafeLoadError(error) {
+    console.error(error);
+    setLoadError("Couldn't load nearby cafes.");
   }
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setCenter(defaultCenter);
-      fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
+      async function loadDefaultCafes() {
+        await fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
+      }
+
+      loadDefaultCafes().catch(console.error);
       return;
     }
 
@@ -77,25 +70,29 @@ export default function MapComponent() {
         const lng = position.coords.longitude;
 
         setCenter({ lat, lng });
-        fetchNearbyCafes(lat, lng);
+        fetchNearbyCafes(lat, lng).catch(handleCafeLoadError);
       },
       (error) => {
         console.log("Location error:", error);
         setCenter(defaultCenter);
-        fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
+        fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng).catch(handleCafeLoadError);
       },
     );
   }, []);
 
+  console.log("allcafes:", allCafes)
+  console.log("filtered", filteredCafes)
+
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
-      <input
-        type="text"
+      <JollySearchField
+        aria-label="Search cafes"
         placeholder="Search cafes..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="rounded-lg border p-2"
+        onChange={setQuery}
+        className="mb-4 max-w-sm"
       />
+      {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         <CafeSidebar
           cafes={filteredCafes}
@@ -112,7 +109,7 @@ export default function MapComponent() {
             <div className="h-full w-full overflow-hidden rounded-2xl border">
               <Map
                 style={{ width: "100%", height: "100%" }}
-                defaultCenter={center}
+                center={center}
                 defaultZoom={15}
                 gestureHandling="greedy"
                 mapId="DEMO_MAP_ID"
@@ -121,23 +118,19 @@ export default function MapComponent() {
                 mapTypeControl={false}
               >
                 <AdvancedMarker position={center}>
-                  <div className="h-5 w-5 rounded-full border-4 border-white bg-blue-600 shadow-lg" />
+                  <div className="h-5 w-5 rounded-full border-4 border-background bg-primary shadow-lg" />
                 </AdvancedMarker>
 
-                {cafes.map((cafe) => {
-                  const isSelected = selectedCafe?.id === cafe.id;
-
-                  return (
-                    <AdvancedMarker
-                      key={cafe.id}
-                      position={{
-                        lat: cafe.location.latitude,
-                        lng: cafe.location.longitude,
-                      }}
-                      onClick={() => setSelectedCafe(cafe)}
-                    />
-                  );
-                })}
+                {cafes.map((cafe) => (
+                  <AdvancedMarker
+                    key={cafe.id}
+                    position={{
+                      lat: cafe.location.latitude,
+                      lng: cafe.location.longitude,
+                    }}
+                    onClick={() => setFilteredCafe(cafe)}
+                  />
+                ))}
               </Map>
             </div>
           )}

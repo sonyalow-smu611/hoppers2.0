@@ -80,7 +80,7 @@ export default function PreferencePage() {
               key={level}
               variant="outline"
               onClick={() => setBudget(level)}
-              className={budget >= level ? "text-green-600 border-green-600" : "text-muted-foreground"}
+              className={budget >= level ? "border-sunset-lagoon bg-accent text-accent-foreground" : "text-muted-foreground"}
             >
               {"$".repeat(level)}
             </Button>
@@ -106,7 +106,7 @@ export default function PreferencePage() {
               onClick={() => togglePurpose(p.id)}
               className={`rounded-full ${
                 purposes.includes(p.id)
-                  ? "bg-secondary border-foreground"
+                  ? "bg-secondary border-primary text-secondary-foreground"
                   : "text-muted-foreground"
               }`}
             >

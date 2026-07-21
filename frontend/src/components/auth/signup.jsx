@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -64,7 +65,7 @@ export function SignupForm({ ...props }) {
                   Sign up with Google
                 </Button>
                 <FieldDescription className="px-6 text-center">
-                  Already have an account? <a href="/auth/login">Sign in</a>
+                  Already have an account? <Link href="/auth/login">Sign in</Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

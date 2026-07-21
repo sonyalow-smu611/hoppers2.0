@@ -3,9 +3,16 @@ const FIELD_MASK = [
   "places.location", "places.priceLevel", "places.rating",
   "places.userRatingCount", "places.types", "places.outdoorSeating",
   "places.allowsDogs", "places.goodForGroups", "places.editorialSummary",
+  "places.photos",
 ].join(",");
 
 export async function searchNearbyCafes({ lat, lng, radiusMeters }) {
+  if (!process.env.GOOGLE_PLACES_API_KEY) {
+    const error = new Error("GOOGLE_PLACES_API_KEY is required to search nearby cafes.");
+    error.statusCode = 503;
+    throw error;
+  }
+
   const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
     method: "POST",
     headers: {
