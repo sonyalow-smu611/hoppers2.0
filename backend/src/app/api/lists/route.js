@@ -170,11 +170,17 @@ router.get("/saved-list", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("list")
-    .select("list_id, title, notes, user_id, cafe_id, cafes(*)")
+    .select("list_id, title, notes, user_id, cafe_id, visit_type, cafes(*)")
     .eq("user_id", userId)
     .eq("title", SAVED_LIST_TITLE);
+
+  if (req.query.visited === "true") {
+    query = query.eq("visit_type", true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Supabase get saved places error:", error);
