@@ -73,6 +73,12 @@ async function findExistingCafe(cafe, placeId) {
 async function resolveCafeId({ cafe_id, cafe }) {
   const numericCafeId = toFiniteNumber(cafe_id);
   if (numericCafeId !== null) {
+    if (!Number.isInteger(numericCafeId) || numericCafeId <= 0) {
+      const error = new Error("cafe_id must be a positive integer");
+      error.statusCode = 400;
+      throw error;
+    }
+
     return numericCafeId;
   }
 
