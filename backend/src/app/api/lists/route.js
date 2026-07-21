@@ -1,5 +1,5 @@
 import express from "express";
-import supabase from "../../lib/supabase.js";
+import supabase, { supabaseServiceRole } from "../../lib/supabase.js";
 import { getAuth } from "@clerk/express";
 import { getPlacePhotoUrl } from "../../lib/cafeSync.js";
 
@@ -100,7 +100,13 @@ async function resolveCafeId({ cafe_id, cafe }) {
   const address = (cafe.address ?? cafe.formattedAddress)?.trim() ?? "";
   const tags = cafe.types ?? cafe.tags;
 
-  const { data, error } = await supabase
+  if (!supabaseServiceRole) {
+    const error = new Error("SUPABASE_SERVICE_ROLE_KEY is required to save a new cafe.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const { data, error } = await supabaseServiceRole
     .from("cafes")
     .insert({
       place_id: placeId,
@@ -170,11 +176,17 @@ router.get("/saved-list", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("list")
-    .select("list_id, title, notes, user_id, cafe_id, cafes(*)")
+    .select("list_id, title, notes, user_id, cafe_id, visit_type, cafes(*)")
     .eq("user_id", userId)
     .eq("title", SAVED_LIST_TITLE);
+
+  if (req.query.visited === "true") {
+    query = query.eq("visit_type", true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Supabase get saved places error:", error);

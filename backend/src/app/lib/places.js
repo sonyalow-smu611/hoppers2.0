@@ -1,7 +1,9 @@
 const FIELD_MASK = [
-  "places.id", "places.displayName", "places.location",
-  "places.formattedAddress", "places.types", "places.editorialSummary",
-  "places.priceLevel", "places.photos", "places.rating",
+  "places.id", "places.displayName", "places.formattedAddress",
+  "places.location", "places.priceLevel", "places.rating",
+  "places.userRatingCount", "places.types", "places.outdoorSeating",
+  "places.allowsDogs", "places.goodForGroups", "places.editorialSummary",
+  "places.photos",
 ].join(",");
 
 export async function searchNearbyCafes({ lat, lng, radiusMeters }) {

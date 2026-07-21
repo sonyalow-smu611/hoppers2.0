@@ -7,6 +7,7 @@ import { useClerk, useUser } from "@clerk/nextjs";
 const links = [
   { href: "/feed", label: "Feed" },
   { href: "/saved-list", label: "Saved List" },
+  { href: "/been-there", label: "Been There" },
   { href: "/preferences", label: "Recommender" },
 ];
 
