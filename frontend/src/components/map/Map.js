@@ -118,7 +118,7 @@ export default function MapComponent() {
                 mapTypeControl={false}
               >
                 <AdvancedMarker position={center}>
-                  <div className="h-5 w-5 rounded-full border-4 border-white bg-blue-600 shadow-lg" />
+                  <div className="h-5 w-5 rounded-full border-4 border-background bg-primary shadow-lg" />
                 </AdvancedMarker>
 
                 {cafes.map((cafe) => (

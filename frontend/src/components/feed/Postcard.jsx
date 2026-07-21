@@ -21,7 +21,7 @@ export default function PostCard({ post }) {
     : null;
 
   return (
-    <div className="border rounded-lg p-4 mb-4 shadow-sm bg-white">
+    <div className="border rounded-lg p-4 mb-4 shadow-sm bg-card text-card-foreground">
       <div className="flex items-center gap-2 mb-2">
         <span className="font-semibold">{cafeName}</span>
       </div>
@@ -37,7 +37,7 @@ export default function PostCard({ post }) {
       <p className="mb-2">{post.text_review}</p>
       <StarRating rating={post.rating} />
 
-      <div className="text-sm text-gray-600 mt-2">
+      <div className="text-sm text-muted-foreground mt-2">
         {visitedAt && <p>Visited {visitedAt}</p>}
         {post.comments && <p>{post.comments}</p>}
       </div>

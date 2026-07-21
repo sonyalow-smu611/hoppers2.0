@@ -54,28 +54,42 @@ export default function ResultsPage() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("cafePrefs");
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-    const p = JSON.parse(stored);
-    setPrefs(p);
+    let cancelled = false;
 
-    api
-      .post("/api/recommend", { preferences: p })
-      .then((res) => {
+    async function loadRecommendations() {
+      const stored = localStorage.getItem("cafePrefs");
+      if (!stored) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      const p = JSON.parse(stored);
+      if (!cancelled) setPrefs(p);
+
+      try {
+        const res = await api.post("/api/recommend", { preferences: p });
+        if (cancelled) return;
+
         setRecommended(res.data.recommended ?? []);
         setOthers(res.data.others ?? []);
         setMessage(res.data.message ?? null);
-      })
-      .catch((err) =>
+      } catch (err) {
+        if (cancelled) return;
+
         setError(
           err.response?.data?.error ??
             "Couldn't load recommendations. Please try again.",
-        ),
-      )
-      .finally(() => setLoading(false));
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadRecommendations();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -221,10 +235,10 @@ function CafeResultCard({ cafe, rank, isSaved, onSave }) {
 
   return (
     <Card
-      className={`p-4 mb-3 flex gap-3 ${rank ? "border-2 border-blue-200" : ""}`}
+      className={`p-4 mb-3 flex gap-3 ${rank ? "border-2 border-primary/20" : ""}`}
     >
       {rank ? (
-        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-sm font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-7 h-7 rounded-full bg-accent text-accent-foreground text-sm font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
           {rank}
         </div>
       ) : (
@@ -245,7 +259,7 @@ function CafeResultCard({ cafe, rank, isSaved, onSave }) {
             size="sm"
             variant="outline"
             onClick={onSave}
-            className={`text-xs h-7 ${isSaved ? "text-green-600 border-green-600" : ""}`}
+            className={`text-xs h-7 ${isSaved ? "border-sunset-lagoon text-sunset-blue bg-accent" : ""}`}
           >
             {isSaved ? "♥ Saved" : "♡ Save"}
           </Button>

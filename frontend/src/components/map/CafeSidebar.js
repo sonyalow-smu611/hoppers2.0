@@ -26,8 +26,8 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
   console.log(cafes)
 
   return (
-    <aside className="h-[600px] overflow-y-auto rounded-2xl border bg-white shadow-sm">
-      <div className="sticky top-0 z-10 border-b bg-white p-4">
+    <aside className="h-[600px] overflow-y-auto rounded-2xl border bg-card shadow-sm">
+      <div className="sticky top-0 z-10 border-b bg-card p-4">
         <h2 className="text-lg font-bold">Nearby Cafes</h2>
         <p className="text-sm text-muted-foreground">
           {cafes.length} places found
@@ -45,7 +45,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                 itemRefs.current[cafe.id] = el;
               }}
               onClick={() => onSelectCafe(cafe)}
-              className={`w-full p-4 text-left transition ${isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
+              className={`w-full p-4 text-left transition ${isSelected ? "bg-accent" : "bg-card hover:bg-muted"
                 }`}
             >
               <h3 className="font-semibold leading-snug">
@@ -69,7 +69,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
               </p>
 
               {isSelected && (
-                <div className="mt-4 rounded-xl bg-white p-3 shadow-sm">
+                <div className="mt-4 rounded-xl bg-background p-3 shadow-sm">
                   <img
                     src={
                       cafe.photos?.[0]?.name

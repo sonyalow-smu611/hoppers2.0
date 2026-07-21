@@ -43,13 +43,13 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="fixed inset-0 bg-black/50 flex items-center justify-center">
-      <div className="bg-white p-4 rounded-lg w-80 space-y-2">
+    <form onSubmit={handleSubmit} className="fixed inset-0 bg-foreground/50 flex items-center justify-center">
+      <div className="bg-card text-card-foreground p-4 rounded-lg w-80 space-y-2 shadow-xl">
         <select
           required
           value={cafeId}
           onChange={(e) => setCafeId(e.target.value)}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         >
           <option value="" disabled>
             Choose cafe
@@ -65,7 +65,7 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
           placeholder="Review"
           value={textReview}
           onChange={(e) => setTextReview(e.target.value)}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         <input
           type="number"
@@ -73,31 +73,31 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
           max="5"
           value={rating}
           onChange={(e) => setRating(Number(e.target.value))}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         <input
           type="datetime-local"
           value={visitedAt}
           onChange={(e) => setVisitedAt(e.target.value)}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         <input
           placeholder="Photo URL"
           value={photos}
           onChange={(e) => setPhotos(e.target.value)}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         <textarea
           placeholder="Comments"
           value={comments}
           onChange={(e) => setComments(e.target.value)}
-          className="w-full border rounded px-2 py-1"
+          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" disabled={isSubmitting} className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50">
           {isSubmitting ? 'Posting...' : 'Post'}
         </button>
-        <button type="button" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+        <button type="button" onClick={onClose} disabled={isSubmitting} className="ml-2 rounded-md border border-input px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">Cancel</button>
       </div>
     </form>
   );

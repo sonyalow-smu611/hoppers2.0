@@ -18,7 +18,10 @@ export default function Navbar() {
   return (
     <nav className="w-full">
       <div className="flex items-center justify-between px-6">
-        <Link href="/" className="text-3xl font-bold tracking-tight">
+        <Link
+          href="/"
+          className="text-3xl font-bold tracking-tight text-primary transition-colors hover:text-sunset-lagoon"
+        >
           Hoppers
         </Link>
 
@@ -32,8 +35,8 @@ export default function Navbar() {
                   href={href}
                   className={`rounded-full px-5 py-2 text-base font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-primary/80 hover:bg-sunset-coral/20 hover:text-primary"
                   }`}
                 >
                   {label}
@@ -46,7 +49,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => signOut({ redirectUrl: "/auth/login" })}
-                className="rounded-full px-5 py-2 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                className="rounded-full px-5 py-2 text-base font-medium text-primary/80 transition-colors hover:bg-sunset-coral/20 hover:text-primary"
               >
                 Sign out
               </button>
