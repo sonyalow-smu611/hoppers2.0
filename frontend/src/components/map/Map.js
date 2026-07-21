@@ -43,7 +43,7 @@ export default function MapComponent() {
       radiusMeters: 1200,
     });
 
-    console.log("Places API response:", data);
+    // console.log("Places API response:", data);
     const places = (data.cafes || []).map(withRating);
     setAllCafes(places);
     setCafes(places);
