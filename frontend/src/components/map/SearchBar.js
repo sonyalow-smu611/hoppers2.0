@@ -49,7 +49,7 @@ export default function SearchBar() {
         );
       },
       (error) => {
-        console.log("Location error:", error);
+        // console.log("Location error:", error);
         fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng).catch(console.error);
       },
     );
