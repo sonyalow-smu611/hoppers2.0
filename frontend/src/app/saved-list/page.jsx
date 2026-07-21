@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import api from "@/api";
-import { useEffect, useState } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
 
 const FALLBACK_CAFE_IMAGE =
@@ -48,44 +47,8 @@ export default function SavedListPage() {
     );
   }
 
-  if (loading)
+  if (loading) {
     return <p className="p-6 text-sm text-muted-foreground">Loading...</p>;
-  // const [boards, setBoards] = useState([]);
-  // const [isLoading, setIsLoading] = useState(true);
-  // const [error, setError] = useState("");
-
-  // useEffect(() => {
-  //   const fetchBoards = async () => {
-  //     try {
-  //       const response = await api.get("/lists");
-  //       setBoards(response.data.lists ?? []);
-  //     } catch (error) {
-  //       console.error("Failed to fetch saved lists:", error);
-  //       setError("Unable to load your saved lists.");
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   fetchBoards();
-  // }, []);
-
-  // if (isLoading) {
-  //   return (
-  //     <main className="space-y-6 p-6">
-  //       <p className="text-sm text-muted-foreground">
-  //         Loading saved lists...
-  //       </p>
-  //     </main>
-  //   );
-  // }
-
-  // if (error) {
-  //   return (
-  //     <main className="space-y-6 p-6">
-  //       <p className="text-sm text-red-500">{error}</p>
-  //     </main>
-  //   );
   }
 
   return (
@@ -99,17 +62,12 @@ export default function SavedListPage() {
 
       {savedPlaces.length === 0 ? (
         <p className="text-sm text-muted-foreground">No saved cafes yet.</p>
-      // {boards.length === 0 ? (
-      //   <p className="text-sm text-muted-foreground">
-      //     No saved lists yet.
-      //   </p>
-      // ) 
-        : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-            {savedPlaces.map((place) => (
-              <SavedCafeCard key={place.list_id} cafe={place.cafes} />
-            ))}
-          </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+          {savedPlaces.map((place) => (
+            <SavedCafeCard key={place.list_id} cafe={place.cafes} />
+          ))}
+        </div>
       )}
     </main>
   );
