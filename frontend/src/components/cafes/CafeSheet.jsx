@@ -24,7 +24,7 @@ const mockCafes = [
 ];
 
 export default async function CafeSheet() {
-  const response = await api.get("http://localhost:4000/cafes");
+  const response = await api.get("/cafes");
 
   // console.log(response.data);
 

@@ -1,28 +1,59 @@
 "use client";
-import { useState, useEffect } from "react";
-// import "../../../public/data.json"
+import { useState, useEffect, useMemo } from "react";
+import api from "@/api";
+
+const defaultCenter = {
+  lat: 1.296568,
+  lng: 103.852119,
+};
 
 export default function SearchBar() {
   const [cafes, setCafes] = useState([]);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
 
-  useEffect(() => {
-    fetch("../../../public/data.json")
-      .then((res) => res.json())
-      .then((json) => setCafes(json));
-  }, []);
-
-  useEffect(() => {
+  const results = useMemo(() => {
     if (!query) {
-      setResults([]);
+      return [];
+    }
+
+    return cafes.filter((cafe) =>
+      cafe.displayName?.text?.toLowerCase().includes(query.toLowerCase()),
+    );
+  }, [query, cafes]);
+
+  async function fetchNearbyCafes(lat, lng) {
+    const { data } = await api.post("/cafes/sync", {
+      latitude: lat,
+      longitude: lng,
+      radiusMeters: 1200,
+    });
+
+    // console.log("search bar:", data.cafes);
+    setCafes(data.cafes || []);
+  }
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      async function loadDefaultCafes() {
+        await fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
+      }
+
+      loadDefaultCafes().catch(console.error);
       return;
     }
-    const filtered = cafes.filter((cafe) =>
-      cafe.displayName.text.toLowerCase().includes(query.toLowerCase()),
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        fetchNearbyCafes(position.coords.latitude, position.coords.longitude).catch(
+          console.error,
+        );
+      },
+      (error) => {
+        // console.log("Location error:", error);
+        fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng).catch(console.error);
+      },
     );
-    setResults(filtered);
-  }, [query, cafes]);
+  }, []);
 
   return (
     <div>
@@ -35,7 +66,9 @@ export default function SearchBar() {
       <ul className="font-medium">
         {results.map((cafe) => (
           <li key={cafe.id}>
-            {cafe.displayName.text} — {cafe.formattedAddress} (⭐ {cafe.rating})
+            {cafe.displayName?.text ?? "Cafe"} —{" "}
+            {cafe.formattedAddress ?? "No address available"} (⭐{" "}
+            {cafe.rating ?? "No rating"})
           </li>
         ))}
       </ul>

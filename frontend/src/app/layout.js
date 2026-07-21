@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full">
         <ClerkProvider>
-              <header className="flex h-16 items-center border-b bg-white px-4">
+              <header className="flex h-16 items-center border-b border-sunset-coral/25 bg-secondary px-4 shadow-sm">
 
                 <div className="flex-1">
                   <Navbar />
