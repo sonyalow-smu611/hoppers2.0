@@ -80,8 +80,8 @@ export default function MapComponent() {
     );
   }, []);
 
-  console.log("allcafes:", allCafes)
-  console.log("filtered", filteredCafes)
+  // console.log("allcafes:", allCafes);
+  // console.log("filtered", filteredCafes);
 
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
