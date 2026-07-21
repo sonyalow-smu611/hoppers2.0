@@ -28,7 +28,7 @@ export default function SearchBar() {
       radiusMeters: 1200,
     });
 
-    console.log("search bar:", data.cafes)
+    // console.log("search bar:", data.cafes);
     setCafes(data.cafes || []);
   }
 
