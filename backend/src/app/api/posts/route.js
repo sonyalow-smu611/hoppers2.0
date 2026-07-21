@@ -42,6 +42,10 @@ async function selectPosts() {
     .order('created_at', { ascending: false })
 }
 
+async function selectCafes() {
+  return supabase.from('cafes').select('*')
+}
+
 async function selectPostById(id) {
   const withCafe = await supabase
     .from('posts')
@@ -103,10 +107,23 @@ function validatePostBody(body) {
 
 // get all posts
 router.get('/', async (req, res) => {
-  const { data, error } = await selectPosts()
+  const [postsResult, cafesResult] = await Promise.all([
+    selectPosts(),
+    selectCafes(),
+  ])
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ posts: data.map(normalizePost) })
+  if (postsResult.error) {
+    return res.status(500).json({ error: postsResult.error.message })
+  }
+
+  if (cafesResult.error) {
+    return res.status(500).json({ error: cafesResult.error.message })
+  }
+
+  res.json({
+    posts: postsResult.data.map(normalizePost),
+    cafes: cafesResult.data,
+  })
 })
 
 router.post('/', async (req, res) => {

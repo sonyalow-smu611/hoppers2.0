@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import api from "@/api";
 
 // props from FeedList 
 export default function NewPost({ cafes = [], onSubmit, onClose }) {

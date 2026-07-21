@@ -8,7 +8,7 @@ const PLACEHOLDER =
   "https://images.unsplash.com/photo-1554118811-1e0d58224f24";
 
 function getPhotoUrl(photoName) {
-  return `https://places.googleapis.com/v1/${photoName}/media?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&maxWidthPx=400&maxHeightPx=400`;
+  return `/cafes/photo?name=${encodeURIComponent(photoName)}`;
 }
 
 export default function CafePopupCard({ cafe, onClose }) {
@@ -26,7 +26,7 @@ export default function CafePopupCard({ cafe, onClose }) {
                   : PLACEHOLDER
               }
               alt="Cafe"
-              className="h-40 w-full object-cover"
+              className="h-80 w-full object-cover"
             />
 
             <button

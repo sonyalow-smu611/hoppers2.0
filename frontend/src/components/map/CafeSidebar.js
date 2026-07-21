@@ -8,7 +8,7 @@ const PLACEHOLDER =
   "https://images.unsplash.com/photo-1554118811-1e0d58224f24";
 
 function getPhotoUrl(photoName) {
-  return `https://places.googleapis.com/v1/${photoName}/media?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&maxWidthPx=400&maxHeightPx=400`;
+  return `/cafes/photo?name=${encodeURIComponent(photoName)}`;
 }
 
 export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
@@ -22,6 +22,8 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
       block: "center",
     });
   }, [selectedCafe]);
+
+  console.log(cafes)
 
   return (
     <aside className="h-[600px] overflow-y-auto rounded-2xl border bg-white shadow-sm">
@@ -58,9 +60,9 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                 <Badge variant="outline">☕ Cafe</Badge>
               </div>
 
-              <p className="mt-2 text-sm text-muted-foreground">
+              {/* <p className="mt-2 text-sm text-muted-foreground">
                 {cafe.userRatingCount ?? 0} reviews
-              </p>
+              </p> */}
 
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                 📍 {cafe.formattedAddress ?? "No address available"}
@@ -75,7 +77,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
                         : PLACEHOLDER
                     }
                     alt="Cafe"
-                    className="h-28 w-full rounded-lg object-cover"
+                    className="h-40 w-full rounded-lg object-cover"
                   />
 
                   {/* <div className="mt-3 flex flex-wrap gap-2">

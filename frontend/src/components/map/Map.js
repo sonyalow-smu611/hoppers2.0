@@ -4,12 +4,20 @@ import { useState, useEffect } from "react";
 import { APIProvider, Map, AdvancedMarker } from "@vis.gl/react-google-maps";
 import api from "@/api";
 
+import { JollySearchField } from "@/components/ui/search-field";
 import CafeSidebar from "./CafeSidebar";
 
 const defaultCenter = {
   lat: 1.296568,
   lng: 103.852119,
 };
+
+function withRating(cafe) {
+  return {
+    ...cafe,
+    rating: cafe.rating ?? null,
+  };
+}
 
 export default function MapComponent() {
   const [center, setCenter] = useState(defaultCenter);
@@ -19,11 +27,12 @@ export default function MapComponent() {
   const [filteredCafe, setFilteredCafe] = useState(null);
   const [loadError, setLoadError] = useState("");
 
-  const filteredCafes = query
+  const filteredCafes = (query
     ? allCafes.filter((cafe) =>
         cafe.displayName?.text?.toLowerCase().includes(query.toLowerCase()),
       )
-    : allCafes;
+    : allCafes
+  ).map(withRating);
 
   async function fetchNearbyCafes(lat, lng) {
     setLoadError("");
@@ -35,7 +44,7 @@ export default function MapComponent() {
     });
 
     console.log("Places API response:", data);
-    const places = data.cafes || [];
+    const places = (data.cafes || []).map(withRating);
     setAllCafes(places);
     setCafes(places);
   }
@@ -71,14 +80,17 @@ export default function MapComponent() {
     );
   }, []);
 
+  console.log("allcafes:", allCafes)
+  console.log("filtered", filteredCafes)
+
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
-      <input
-        type="text"
+      <JollySearchField
+        aria-label="Search cafes"
         placeholder="Search cafes..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="rounded-lg border p-2"
+        onChange={setQuery}
+        className="mb-4 max-w-sm"
       />
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">

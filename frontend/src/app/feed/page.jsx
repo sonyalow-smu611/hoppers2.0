@@ -15,13 +15,10 @@ export default function Page() {
   useEffect(() => {
     async function fetchFeedData() {
       try {
-        const [postsRes, cafesRes] = await Promise.all([
-          api.get("/posts"),
-          api.get("/cafes"),
-        ]);
+        const postsRes = await api.get("/posts");
 
         setPosts(Array.isArray(postsRes.data.posts) ? postsRes.data.posts : []);
-        setCafes(Array.isArray(cafesRes.data.cafes) ? cafesRes.data.cafes : []);
+        setCafes(Array.isArray(postsRes.data.cafes) ? postsRes.data.cafes : []);
       } catch (err) {
         console.error(err);
         setError("Failed to load feed.");
