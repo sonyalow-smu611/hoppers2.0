@@ -23,7 +23,7 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
     });
   }, [selectedCafe]);
 
-  console.log(cafes)
+  // console.log(cafes);
 
   return (
     <aside className="h-[600px] overflow-y-auto rounded-2xl border bg-card shadow-sm">
