@@ -12,8 +12,7 @@ const isBackendProxyRoute = createRouteMatcher([
   '/users',
   '/users/(.*)',
   '/cafes',
-  '/cafes/sync',
-  '/cafes/photo',
+  '/cafes/(.*)', 
 ])
 
 export default clerkMiddleware((auth, req) => {
