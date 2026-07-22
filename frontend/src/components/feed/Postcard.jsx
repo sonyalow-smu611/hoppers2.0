@@ -1,13 +1,15 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 function StarRating({ rating }) {
+  const r = Number(rating) || 0;
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= rating ? "text-amber-400" : "text-gray-300"}>
-          {i <= rating ? "★" : "☆"}
+        <span key={i} className={i <= r ? "text-amber-400" : "text-gray-300"}>
+          {i <= r ? "★" : "☆"}
         </span>
       ))}
     </div>
@@ -57,11 +59,12 @@ function PhotoGrid({ urls }) {
 export default function PostCard({ post }) {
   const {
     rating, text_review, visited_at, photos, comments,
-    cafe_id, cafe, author_name, author_avatar,
+    cafe_id, cafes, cafe, author_name, author_avatar,
   } = post || {};
 
   const photoUrls = parsePhotos(photos);
-  const cafeName = cafe?.name;
+  // support both the `cafes` join shape (main) and the `cafe` alias
+  const cafeName = cafe?.name || cafes?.name;
   const author = author_name || "Hoppers user";
   const formattedDate = visited_at
     ? new Date(visited_at).toLocaleDateString("en-SG", {

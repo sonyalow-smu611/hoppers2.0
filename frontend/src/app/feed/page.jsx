@@ -33,18 +33,6 @@ export default function Page() {
     };
   }, [getToken, reloadKey]);
 
-  async function handleToggleLike(postId) {
-    const token = await getToken();
-    const res = await api.post(
-      `/posts/${postId}/like`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, likes: res.data.likes } : p)),
-    );
-  }
-
   if (loading) return <div>Loading...</div>;
 
   return (
@@ -60,7 +48,7 @@ export default function Page() {
         </button>
       </div>
 
-      <FeedList posts={posts} onToggleLike={handleToggleLike} />
+      <FeedList posts={posts} />
 
       {modalOpen && (
         <CreatePostModal

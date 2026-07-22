@@ -1,71 +1,168 @@
 import express from 'express'
 import supabase from '../../lib/supabase.js'
+import { getAuth } from '@clerk/express'
 
 const router = express.Router()
 
-// get posts, optionally filtered by ?cafe_id=, joined with cafe name/picture, newest first
-router.get('/', async (req, res) => {
-  const { cafe_id } = req.query
-  let query = supabase
-    .from('posts')
-    .select('*, cafe:cafes(name, picture)')
-  if (cafe_id) query = query.eq('cafe_id', cafe_id)
-  query = query.order('created_at', { ascending: false })
+const POST_COLUMNS =
+  'id, user_id, cafe_id, rating, text_review, visited_at, photos, comments, created_at'
 
-  const { data, error } = await query
-  if (error) {
-    console.error('[posts] fetch failed:', error)
-    return res.status(500).json({ error: error.message })
+function normalizePost(row) {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    cafe_id: row.cafe_id,
+    rating: row.rating,
+    text_review: row.text_review,
+    visited_at: row.visited_at,
+    photos: row.photos,
+    comments: row.comments,
+    created_at: row.created_at,
+    cafes: row.cafes ?? null,
+    author_name: row.author_name ?? null,
+    author_avatar: row.author_avatar ?? null,
   }
-  res.json({ posts: data })
+}
+
+function isMissingRelationshipError(error) {
+  return error?.code === 'PGRST200' || error?.message?.includes('relationship')
+}
+
+// accept an optional cafe_id filter (used by the /cafes/[id] reviews page)
+async function selectPosts(cafeId) {
+  const select = `${POST_COLUMNS}, cafes(*)`
+  let withCafe = supabase
+    .from('posts')
+    .select(select)
+    .order('created_at', { ascending: false })
+  if (cafeId) withCafe = withCafe.eq('cafe_id', cafeId)
+  const res = await withCafe
+  if (!res.error || !isMissingRelationshipError(res.error)) return res
+
+  let plain = supabase
+    .from('posts')
+    .select(POST_COLUMNS)
+    .order('created_at', { ascending: false })
+  if (cafeId) plain = plain.eq('cafe_id', cafeId)
+  return plain
+}
+
+async function selectCafes() {
+  return supabase.from('cafes').select('*')
+}
+
+async function selectPostById(id) {
+  const withCafe = await supabase
+    .from('posts')
+    .select(`${POST_COLUMNS}, cafes(*)`)
+    .eq('id', id)
+    .single()
+
+  if (!withCafe.error || !isMissingRelationshipError(withCafe.error)) {
+    return withCafe
+  }
+
+  return supabase.from('posts').select(POST_COLUMNS).eq('id', id).single()
+}
+
+// get all posts (+ cafes), optionally filtered by ?cafe_id=
+router.get('/', async (req, res) => {
+  const cafeId = req.query.cafe_id
+  const [postsResult, cafesResult] = await Promise.all([
+    selectPosts(cafeId),
+    selectCafes(),
+  ])
+
+  if (postsResult.error) {
+    return res.status(500).json({ error: postsResult.error.message })
+  }
+  if (cafesResult.error) {
+    return res.status(500).json({ error: cafesResult.error.message })
+  }
+
+  res.json({
+    posts: postsResult.data.map(normalizePost),
+    cafes: cafesResult.data,
+  })
 })
 
 router.post('/', async (req, res) => {
-  const {
-    cafe_name, rating, description, visited_at,
-    photos, author_name, author_avatar,
-  } = req.body || {}
+  const { userId } = getAuth(req)
 
-  if (!cafe_name || !rating || !description) {
-    return res.status(400).json({ error: 'Cafe name, rating and description are required' })
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  // resolve cafe_name -> cafe_id
-  const { data: cafe, error: cafeError } = await supabase
-    .from('cafes')
-    .select('id')
-    .ilike('name', cafe_name)
-    .maybeSingle()
+  const body = req.body || {}
 
-  if (cafeError) {
-    console.error('[posts] cafe lookup failed:', cafeError)
-    return res.status(500).json({ error: cafeError.message })
+  // resolve the cafe: accept a direct cafe_id, otherwise look it up by name
+  let cafe_id = Number(body.cafe_id)
+  if (!Number.isInteger(cafe_id) || cafe_id <= 0) {
+    const name = body.cafe_name
+    if (!name) {
+      return res.status(400).json({ error: 'cafe_id or cafe_name is required' })
+    }
+    const { data: cafe, error: cafeError } = await supabase
+      .from('cafes')
+      .select('id')
+      .ilike('name', name)
+      .maybeSingle()
+    if (cafeError) {
+      console.error('[posts] cafe lookup failed:', cafeError)
+      return res.status(500).json({ error: cafeError.message })
+    }
+    if (!cafe) return res.status(404).json({ error: `Cafe "${name}" not found` })
+    cafe_id = cafe.id
   }
-  if (!cafe) return res.status(404).json({ error: `Cafe "${cafe_name}" not found` })
+
+  const rating = Number(body.rating)
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be an integer from 1 to 5' })
+  }
+
+  // accept either text_review (direct) or description (create-post modal)
+  const text_review = (
+    typeof body.text_review === 'string' ? body.text_review : (body.description || '')
+  ).trim()
+  if (!text_review) {
+    return res.status(400).json({ error: 'text_review is required' })
+  }
+
+  const visitedAt = body.visited_at ? new Date(body.visited_at) : new Date()
+  if (Number.isNaN(visitedAt.getTime())) {
+    return res.status(400).json({ error: 'visited_at must be a valid date' })
+  }
 
   // normalise photos to a JSON array string (supports multi-photo)
   let photosValue = null
-  if (Array.isArray(photos)) {
-    photosValue = photos.length ? JSON.stringify(photos) : null
-  } else if (typeof photos === 'string' && photos.trim()) {
-    photosValue = JSON.stringify([photos])
+  if (Array.isArray(body.photos)) {
+    photosValue = body.photos.length ? JSON.stringify(body.photos) : null
+  } else if (typeof body.photos === 'string' && body.photos.trim()) {
+    photosValue = JSON.stringify([body.photos.trim()])
   }
 
-  // NOTE: posts.user_id has no FK and there is no `users` table yet, so we use a
-  // placeholder author. Swap for a real Clerk->users lookup once that table exists.
-  const PLACEHOLDER_USER_ID = 1
+  const comments =
+    typeof body.comments === 'string' && body.comments.trim()
+      ? body.comments.trim()
+      : null
+
   const base = {
-    cafe_id: cafe.id,
-    rating: Number(rating),
-    text_review: description,
-    visited_at: visited_at || new Date().toISOString(),
+    cafe_id,
+    rating,
+    text_review,
+    visited_at: visitedAt.toISOString(),
     photos: photosValue,
-    user_id: PLACEHOLDER_USER_ID,
+    comments,
+    user_id: userId,
   }
 
   // try with denormalized author columns; fall back if they don't exist yet
-  const run = (payload) => supabase.from('posts').insert(payload).select().single()
-  let result = await run({ ...base, author_name: author_name || null, author_avatar: author_avatar || null })
+  const run = (payload) => supabase.from('posts').insert(payload).select('id').single()
+  let result = await run({
+    ...base,
+    author_name: body.author_name || null,
+    author_avatar: body.author_avatar || null,
+  })
   if (result.error && /author_(name|avatar)/i.test(result.error.message)) {
     result = await run(base)
   }
@@ -75,7 +172,14 @@ router.post('/', async (req, res) => {
     console.error('[posts] insert failed:', error)
     return res.status(500).json({ error: error.message })
   }
-  res.status(201).json({ post: data })
+
+  const inserted = await selectPostById(data.id)
+  if (inserted.error) {
+    console.error('[posts] fetch inserted failed:', inserted.error)
+    return res.status(500).json({ error: inserted.error.message })
+  }
+
+  res.status(201).json(normalizePost(inserted.data))
 })
 
 export default router
