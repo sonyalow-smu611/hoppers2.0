@@ -19,6 +19,8 @@ function normalizePost(row) {
     comments: row.comments,
     created_at: row.created_at,
     cafes: row.cafes ?? null,
+    author_name: row.author_name ?? null,
+    author_avatar: row.author_avatar ?? null,
   }
 }
 
@@ -26,20 +28,23 @@ function isMissingRelationshipError(error) {
   return error?.code === 'PGRST200' || error?.message?.includes('relationship')
 }
 
-async function selectPosts() {
-  const withCafe = await supabase
+// accept an optional cafe_id filter (used by the /cafes/[id] reviews page)
+async function selectPosts(cafeId) {
+  const select = `${POST_COLUMNS}, cafes(*)`
+  let withCafe = supabase
     .from('posts')
-    .select(`${POST_COLUMNS}, cafes(*)`)
+    .select(select)
     .order('created_at', { ascending: false })
+  if (cafeId) withCafe = withCafe.eq('cafe_id', cafeId)
+  const res = await withCafe
+  if (!res.error || !isMissingRelationshipError(res.error)) return res
 
-  if (!withCafe.error || !isMissingRelationshipError(withCafe.error)) {
-    return withCafe
-  }
-
-  return supabase
+  let plain = supabase
     .from('posts')
     .select(POST_COLUMNS)
     .order('created_at', { ascending: false })
+  if (cafeId) plain = plain.eq('cafe_id', cafeId)
+  return plain
 }
 
 async function selectCafes() {
@@ -60,62 +65,17 @@ async function selectPostById(id) {
   return supabase.from('posts').select(POST_COLUMNS).eq('id', id).single()
 }
 
-function validatePostBody(body) {
-  const cafeId = Number(body.cafe_id)
-  const rating = Number(body.rating)
-  const textReview =
-    typeof body.text_review === 'string' ? body.text_review.trim() : ''
-
-  if (!Number.isInteger(cafeId) || cafeId <= 0) {
-    return { error: 'cafe_id must be a valid number' }
-  }
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return { error: 'rating must be an integer from 1 to 5' }
-  }
-
-  if (!textReview) {
-    return { error: 'text_review is required' }
-  }
-
-  const visitedAt = body.visited_at ? new Date(body.visited_at) : new Date()
-
-  if (Number.isNaN(visitedAt.getTime())) {
-    return { error: 'visited_at must be a valid date' }
-  }
-
-  const photos =
-    typeof body.photos === 'string' && body.photos.trim()
-      ? body.photos.trim()
-      : null
-  const comments =
-    typeof body.comments === 'string' && body.comments.trim()
-      ? body.comments.trim()
-      : null
-
-  return {
-    value: {
-      cafe_id: cafeId,
-      rating,
-      text_review: textReview,
-      visited_at: visitedAt.toISOString(),
-      photos,
-      comments,
-    },
-  }
-}
-
-// get all posts
+// get all posts (+ cafes), optionally filtered by ?cafe_id=
 router.get('/', async (req, res) => {
+  const cafeId = req.query.cafe_id
   const [postsResult, cafesResult] = await Promise.all([
-    selectPosts(),
+    selectPosts(cafeId),
     selectCafes(),
   ])
 
   if (postsResult.error) {
     return res.status(500).json({ error: postsResult.error.message })
   }
-
   if (cafesResult.error) {
     return res.status(500).json({ error: cafesResult.error.message })
   }
@@ -133,30 +93,89 @@ router.post('/', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const validation = validatePostBody(req.body)
+  const body = req.body || {}
 
-  if (validation.error) {
-    return res.status(400).json({ error: validation.error })
+  // resolve the cafe: accept a direct cafe_id, otherwise look it up by name
+  let cafe_id = Number(body.cafe_id)
+  if (!Number.isInteger(cafe_id) || cafe_id <= 0) {
+    const name = body.cafe_name
+    if (!name) {
+      return res.status(400).json({ error: 'cafe_id or cafe_name is required' })
+    }
+    const { data: cafe, error: cafeError } = await supabase
+      .from('cafes')
+      .select('id')
+      .ilike('name', name)
+      .maybeSingle()
+    if (cafeError) {
+      console.error('[posts] cafe lookup failed:', cafeError)
+      return res.status(500).json({ error: cafeError.message })
+    }
+    if (!cafe) return res.status(404).json({ error: `Cafe "${name}" not found` })
+    cafe_id = cafe.id
   }
 
-  const { data, error } = await supabase
-    .from('posts')
-    .insert({
-      ...validation.value,
-      user_id: userId,
-    })
-    .select('id')
-    .single()
+  const rating = Number(body.rating)
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be an integer from 1 to 5' })
+  }
+
+  // accept either text_review (direct) or description (create-post modal)
+  const text_review = (
+    typeof body.text_review === 'string' ? body.text_review : (body.description || '')
+  ).trim()
+  if (!text_review) {
+    return res.status(400).json({ error: 'text_review is required' })
+  }
+
+  const visitedAt = body.visited_at ? new Date(body.visited_at) : new Date()
+  if (Number.isNaN(visitedAt.getTime())) {
+    return res.status(400).json({ error: 'visited_at must be a valid date' })
+  }
+
+  // normalise photos to a JSON array string (supports multi-photo)
+  let photosValue = null
+  if (Array.isArray(body.photos)) {
+    photosValue = body.photos.length ? JSON.stringify(body.photos) : null
+  } else if (typeof body.photos === 'string' && body.photos.trim()) {
+    photosValue = JSON.stringify([body.photos.trim()])
+  }
+
+  const comments =
+    typeof body.comments === 'string' && body.comments.trim()
+      ? body.comments.trim()
+      : null
+
+  const base = {
+    cafe_id,
+    rating,
+    text_review,
+    visited_at: visitedAt.toISOString(),
+    photos: photosValue,
+    comments,
+    user_id: userId,
+  }
+
+  // try with denormalized author columns; fall back if they don't exist yet
+  const run = (payload) => supabase.from('posts').insert(payload).select('id').single()
+  let result = await run({
+    ...base,
+    author_name: body.author_name || null,
+    author_avatar: body.author_avatar || null,
+  })
+  if (result.error && /author_(name|avatar)/i.test(result.error.message)) {
+    result = await run(base)
+  }
+  const { data, error } = result
 
   if (error) {
-    console.error('Supabase insert post error:', error)
+    console.error('[posts] insert failed:', error)
     return res.status(500).json({ error: error.message })
   }
 
   const inserted = await selectPostById(data.id)
-
   if (inserted.error) {
-    console.error('Supabase fetch inserted post error:', inserted.error)
+    console.error('[posts] fetch inserted failed:', inserted.error)
     return res.status(500).json({ error: inserted.error.message })
   }
 

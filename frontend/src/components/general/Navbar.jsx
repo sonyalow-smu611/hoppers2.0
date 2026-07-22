@@ -45,7 +45,7 @@ export default function Navbar() {
               </li>
             );
           })}
-          {isSignedIn && (
+          {isSignedIn ? (
             <li>
               <button
                 type="button"
@@ -54,6 +54,15 @@ export default function Navbar() {
               >
                 Sign out
               </button>
+            </li>
+          ) : (
+            <li>
+              <Link
+                href="/auth/login"
+                className="rounded-full bg-blue-600 px-5 py-2 text-base font-medium text-white transition-colors hover:bg-blue-700"
+              >
+                Sign in
+              </Link>
             </li>
           )}
         </ul>

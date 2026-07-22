@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ark-ui/react": "^5.37.2",
     "@clerk/nextjs": "^7.5.12",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
