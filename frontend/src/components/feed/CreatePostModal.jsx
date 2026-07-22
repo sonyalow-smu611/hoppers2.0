@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import api from "@/api";
 import supabase from "@/lib/supabase";
 import RatingGroupStars from "@/components/ui/rating-group";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const RATING_LABELS = ["Poor", "Fair", "Good", "Very Good", "Excellent"];
 
@@ -16,12 +17,30 @@ export default function CreatePostModal({ onClose, onCreated }) {
   const [cafeName, setCafeName] = useState("");
   const [rating, setRating] = useState(0);
   const [description, setDescription] = useState("");
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // File[]
   const [submitting, setSubmitting] = useState(false);
 
-  // real Clerk user — no more "test" placeholder. Falls back gracefully if not signed in.
   const displayName =
     user?.username || user?.firstName || user?.fullName || "Guest";
+
+  function addFiles(fileList) {
+    const incoming = Array.from(fileList || []);
+    setPhotos((prev) => [...prev, ...incoming]);
+  }
+
+  function removePhoto(idx) {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function uploadOne(file) {
+    const ext = file.name.split(".").pop();
+    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("post-photos")
+      .upload(filePath, file, { contentType: file.type });
+    if (error) throw error;
+    return supabase.storage.from("post-photos").getPublicUrl(filePath).data.publicUrl;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,25 +50,13 @@ export default function CreatePostModal({ onClose, onCreated }) {
 
     setSubmitting(true);
     try {
-      // 1. upload photo directly to Supabase Storage (optional)
-      let photoUrl = null;
-      if (photo) {
-        const ext = photo.name.split(".").pop();
-        const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("post-photos")
-          .upload(filePath, photo, { contentType: photo.type });
-        if (upErr) {
-          console.error("Photo upload failed:", upErr);
-          alert("Photo upload failed: " + upErr.message);
-          return;
-        }
-        photoUrl = supabase.storage
-          .from("post-photos")
-          .getPublicUrl(filePath).data.publicUrl;
+      // 1. upload all photos directly to Supabase Storage
+      const photoUrls = [];
+      for (const file of photos) {
+        photoUrls.push(await uploadOne(file));
       }
 
-      // 2. create the post
+      // 2. create the post (photos as array, author captured from Clerk)
       const token = await getToken();
       await api.post(
         "/posts",
@@ -58,7 +65,9 @@ export default function CreatePostModal({ onClose, onCreated }) {
           rating,
           description,
           visited_at: new Date().toISOString(),
-          photos: photoUrl,
+          photos: photoUrls,
+          author_name: displayName,
+          author_avatar: user?.imageUrl || null,
         },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -79,7 +88,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 relative"
+        className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -91,11 +100,12 @@ export default function CreatePostModal({ onClose, onCreated }) {
           <XIcon className="w-5 h-5" />
         </button>
 
-        {/* header: signed-in user (replaces the "test" placeholder) */}
+        {/* header: real Clerk avatar + name */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
+          <Avatar className="size-10">
+            {user?.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayName} /> : null}
+            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400">Posting as</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -150,23 +160,38 @@ export default function CreatePostModal({ onClose, onCreated }) {
             />
           </div>
 
-          {/* photo (optional) */}
+          {/* photos (multiple) */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Photo (optional)
+              Photos (optional)
             </label>
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+              multiple
+              onChange={(e) => addFiles(e.target.files)}
               className="w-full text-sm"
             />
-            {photo && (
-              <img
-                src={URL.createObjectURL(photo)}
-                alt="Preview"
-                className="mt-2 w-full max-h-40 object-cover rounded-lg"
-              />
+            {photos.length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {photos.map((file, idx) => (
+                  <div key={idx} className="relative">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="Preview"
+                      className="w-full h-20 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(idx)}
+                      className="absolute -top-1.5 -right-1.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/80"
+                      aria-label="Remove photo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

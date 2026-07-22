@@ -1,11 +1,35 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import api from "@/api";
 
 export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
   const itemRefs = useRef({});
+  const router = useRouter();
+
+  // resolve a Google Places cafe (by name) to a DB cafe and open its review page
+  async function goToReviews(cafe, event) {
+    event.stopPropagation();
+    const name = cafe?.displayName?.text;
+    if (!name) return;
+    try {
+      const res = await api.get("/cafes");
+      const match = (res.data.cafes || []).find(
+        (c) => (c.name || "").toLowerCase() === name.toLowerCase(),
+      );
+      if (match) {
+        router.push(`/cafes/${match.id}`);
+      } else {
+        alert(`No reviews for "${name}" yet. Be the first to review it on the feed!`);
+      }
+    } catch (e) {
+      console.error("Failed to load reviews:", e);
+      alert("Could not load reviews right now.");
+    }
+  }
 
   useEffect(() => {
     if (!selectedCafe) return;
@@ -88,6 +112,14 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
 
                   >
                     More Info
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="mt-2 h-8 w-full rounded-full text-sm"
+                    onClick={(e) => goToReviews(cafe, e)}
+                  >
+                    Read all reviews
                   </Button>
                 </div>
               )}

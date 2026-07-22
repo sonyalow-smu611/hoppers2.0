@@ -5,12 +5,10 @@ export default function FeedList({ posts = [], onToggleLike }) {
   const iterablePosts = Array.isArray(posts) ? posts : [];
 
   return (
-    <div className="relative min-h-screen">
-      <div className="max-w-md mx-auto py-4">
-        {iterablePosts.map((post) => (
-          <PostCard key={post.id} post={post} onToggleLike={onToggleLike} />
-        ))}
-      </div>
+    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+      {iterablePosts.map((post) => (
+        <PostCard key={post.id} post={post} onToggleLike={onToggleLike} />
+      ))}
     </div>
   );
 }
