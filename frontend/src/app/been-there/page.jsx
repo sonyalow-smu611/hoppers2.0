@@ -37,7 +37,7 @@ export default function BeenTherePage() {
     return (
       <main className="p-6">
         <p className="text-sm text-muted-foreground">
-          Please sign in to view cafes you've been to.
+          Please sign in to view cafes you&apos;ve been to.
         </p>
       </main>
     );
@@ -51,13 +51,13 @@ export default function BeenTherePage() {
       <div>
         <h1 className="text-2xl font-semibold">Been There</h1>
         <p className="text-sm text-muted-foreground">
-          Cafes you've visited
+          Cafes you&apos;ve visited
         </p>
       </div>
 
       {visitedPlaces.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No visited cafes yet — mark one as "Been there" from your saved list.
+          No visited cafes yet — mark one as &quot;Been there&quot; from your saved list.
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
