@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 import PostCard from "./Postcard";
+import NewPost from "./NewPost";
 
 export default function FeedList({ posts = [], onToggleLike }) {
   const iterablePosts = Array.isArray(posts) ? posts : [];
