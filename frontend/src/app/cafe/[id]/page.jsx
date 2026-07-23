@@ -18,13 +18,11 @@ export default function CafeDetailPage() {
     async function load() {
       try {
         const [cafeRes, postsRes] = await Promise.all([
-          api.get("/cafes"),
+          api.get(`/cafes/${id}`),
           api.get(`/posts?cafe_id=${id}`),
         ]);
         if (!active) return;
-        setCafe(
-          (cafeRes.data.cafes || []).find((c) => String(c.id) === String(id)) || null,
-        );
+        setCafe(cafeRes.data.cafe || null);
         setPosts(postsRes.data.posts || []);
       } catch (err) {
         console.error("Failed to load cafe:", err);
@@ -60,7 +58,9 @@ export default function CafeDetailPage() {
           )}
           <h1 className="text-2xl font-bold text-gray-900">{cafe.name}</h1>
           {cafe.address && <p className="text-gray-500 text-sm">{cafe.address}</p>}
-          {cafe.description && <p className="text-sm mt-2 text-gray-700">{cafe.description}</p>}
+          {cafe.description && (
+            <p className="text-sm mt-2 text-gray-700">{cafe.description}</p>
+          )}
         </div>
       ) : (
         <p className="text-gray-500 mb-6">Cafe not found in our directory.</p>

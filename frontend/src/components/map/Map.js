@@ -26,6 +26,7 @@ export default function MapComponent() {
   const [query, setQuery] = useState("");
   const [filteredCafe, setFilteredCafe] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const [locationStatus, setLocationStatus] = useState("");
 
   const filteredCafes = (query
     ? allCafes.filter((cafe) =>
@@ -54,31 +55,56 @@ export default function MapComponent() {
     setLoadError("Couldn't load nearby cafes.");
   }
 
+  function applyPosition(lat, lng) {
+    setCenter({ lat, lng });
+    fetchNearbyCafes(lat, lng).catch(handleCafeLoadError);
+  }
+
+  function onPositionError(error) {
+    console.log("Location error:", error);
+    // once denied, the browser won't re-prompt; tell the user how to reset it
+    setLocationStatus(error.code === error.PERMISSION_DENIED ? "denied" : "error");
+    applyPosition(defaultCenter.lat, defaultCenter.lng);
+  }
+
+  const geoOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 };
+
   useEffect(() => {
     if (!navigator.geolocation) {
-      async function loadDefaultCafes() {
+      (async () => {
         await fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
-      }
-
-      loadDefaultCafes().catch(console.error);
+      })().catch(handleCafeLoadError);
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        setCenter({ lat, lng });
-        fetchNearbyCafes(lat, lng).catch(handleCafeLoadError);
+        setLocationStatus("");
+        applyPosition(position.coords.latitude, position.coords.longitude);
       },
-      (error) => {
-        console.log("Location error:", error);
-        setCenter(defaultCenter);
-        fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng).catch(handleCafeLoadError);
-      },
+      onPositionError,
+      geoOptions,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // triggered by the "Use my location" button — a real user gesture, so the
+  // browser will reliably show the location prompt (and re-show it if allowed)
+  function locateMe() {
+    setLocationStatus("prompting");
+    if (!navigator.geolocation) {
+      setLocationStatus("unsupported");
+      applyPosition(defaultCenter.lat, defaultCenter.lng);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationStatus("");
+        applyPosition(position.coords.latitude, position.coords.longitude);
+      },
+      onPositionError,
+      geoOptions,
+    );
+  }
 
   // console.log("allcafes:", allCafes);
   // console.log("filtered", filteredCafes);
@@ -92,6 +118,26 @@ export default function MapComponent() {
         onChange={setQuery}
         className="mb-4 max-w-sm"
       />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={locateMe}
+          className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          📍 {locationStatus === "prompting" ? "Locating…" : "Use my location"}
+        </button>
+        {locationStatus === "denied" && (
+          <span className="text-xs text-amber-600">
+            Location blocked — allow this site in your browser&apos;s site settings (address bar
+            → site permissions → location), then click again.
+          </span>
+        )}
+        {locationStatus === "error" && (
+          <span className="text-xs text-amber-600">
+            Couldn&apos;t get your location. Showing the Singapore area.
+          </span>
+        )}
+      </div>
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         <CafeSidebar

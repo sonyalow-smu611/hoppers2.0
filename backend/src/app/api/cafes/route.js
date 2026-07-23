@@ -95,4 +95,30 @@ router.post('/sync', async (req, res) => {
   }
 })
 
+// look up a single cafe by name (used by the map sidebar's "read reviews")
+router.get('/by-name', async (req, res) => {
+  const name = req.query.name
+  if (!name) return res.status(400).json({ error: 'name query is required' })
+  const { data, error } = await supabase
+    .from('cafes')
+    .select('id, name')
+    .ilike('name', name)
+    .limit(1)
+  if (error) return res.status(500).json({ error: error.message })
+  if (!data || data.length === 0) return res.status(404).json({ error: 'Cafe not found' })
+  res.json({ cafe: data[0] })
+})
+
+// get a single cafe by id
+router.get('/:id', async (req, res) => {
+  const { data, error } = await supabase
+    .from('cafes')
+    .select('*')
+    .eq('id', req.params.id)
+    .maybeSingle()
+  if (error) return res.status(500).json({ error: error.message })
+  if (!data) return res.status(404).json({ error: 'Cafe not found' })
+  res.json({ cafe: data })
+})
+
 export default router

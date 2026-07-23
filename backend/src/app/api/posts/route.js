@@ -1,6 +1,6 @@
 import express from 'express'
 import supabase from '../../lib/supabase.js'
-import { getAuth } from '@clerk/express'
+import { getAuth, clerkClient } from '@clerk/express'
 
 const router = express.Router()
 
@@ -30,15 +30,28 @@ function isMissingRelationshipError(error) {
 
 // accept an optional cafe_id filter (used by the /cafes/[id] reviews page)
 async function selectPosts(cafeId) {
+  // Try with author columns first
+  const selectWithAuthor = `${POST_COLUMNS}, author_name, author_avatar, cafes(*)`
+  let withCafeAndAuthor = supabase
+    .from('posts')
+    .select(selectWithAuthor)
+    .order('created_at', { ascending: false })
+  if (cafeId) withCafeAndAuthor = withCafeAndAuthor.eq('cafe_id', cafeId)
+  
+  let res = await withCafeAndAuthor
+  if (!res.error) return res
+
+  // Fallback: Try without author columns (if they don't exist)
   const select = `${POST_COLUMNS}, cafes(*)`
   let withCafe = supabase
     .from('posts')
     .select(select)
     .order('created_at', { ascending: false })
   if (cafeId) withCafe = withCafe.eq('cafe_id', cafeId)
-  const res = await withCafe
+  res = await withCafe
   if (!res.error || !isMissingRelationshipError(res.error)) return res
 
+  // Final fallback: Plain posts without cafe relationship
   let plain = supabase
     .from('posts')
     .select(POST_COLUMNS)
@@ -65,6 +78,36 @@ async function selectPostById(id) {
   return supabase.from('posts').select(POST_COLUMNS).eq('id', id).single()
 }
 
+// resolve Clerk user ids -> display name/avatar, filling in any missing author info
+async function attachClerkAuthors(posts) {
+  const ids = [...new Set(
+    (posts || [])
+      .map((p) => p.user_id)
+      .filter((id) => typeof id === 'string' && id.startsWith('user_'))
+  )]
+  if (ids.length === 0) return posts
+  try {
+    const resp = await clerkClient.users.getUserList({ userId: ids })
+    const users = Array.isArray(resp) ? resp : (resp?.data || [])
+    const map = new Map()
+    for (const u of users) {
+      const name = u.username || u.firstName || u.fullName || null
+      map.set(u.id, { name, imageUrl: u.imageUrl || null })
+    }
+    return posts.map((p) => {
+      const found = p.user_id ? map.get(p.user_id) : null
+      return {
+        ...p,
+        author_name: p.author_name || (found?.name ?? null),
+        author_avatar: p.author_avatar || (found?.imageUrl ?? null),
+      }
+    })
+  } catch (err) {
+    console.error('[posts] clerk author resolve failed:', err)
+    return posts
+  }
+}
+
 // get all posts (+ cafes), optionally filtered by ?cafe_id=
 router.get('/', async (req, res) => {
   const cafeId = req.query.cafe_id
@@ -80,8 +123,9 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ error: cafesResult.error.message })
   }
 
+  const posts = await attachClerkAuthors(postsResult.data.map(normalizePost))
   res.json({
-    posts: postsResult.data.map(normalizePost),
+    posts,
     cafes: cafesResult.data,
   })
 })

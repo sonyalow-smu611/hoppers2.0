@@ -59,13 +59,13 @@ function PhotoGrid({ urls }) {
 export default function PostCard({ post }) {
   const {
     rating, text_review, visited_at, photos, comments,
-    cafe_id, cafes, cafe, author_name, author_avatar,
+    cafe_id, cafes, cafe, author_name, author_avatar, user_id,
   } = post || {};
 
   const photoUrls = parsePhotos(photos);
   // support both the `cafes` join shape (main) and the `cafe` alias
   const cafeName = cafe?.name || cafes?.name;
-  const author = author_name || "Hoppers user";
+  const author = author_name && author_name.trim() ? author_name : "Anonymous";
   const formattedDate = visited_at
     ? new Date(visited_at).toLocaleDateString("en-SG", {
         day: "numeric", month: "short", year: "numeric",
@@ -84,7 +84,7 @@ export default function PostCard({ post }) {
           <p className="text-sm font-semibold text-gray-900 truncate">{author}</p>
           {cafeName && cafe_id ? (
             <Link
-              href={`/cafes/${cafe_id}`}
+              href={`/cafe/${cafe_id}`}
               className="text-xs text-gray-500 hover:text-blue-600 hover:underline truncate block"
             >
               📍 {cafeName}
