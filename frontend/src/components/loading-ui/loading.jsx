@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId } from "react";
 import { InfinityTrack } from "@/components/loading-ui/infinity-track";
 
 const PHRASES = [
@@ -21,11 +21,22 @@ const PHRASES = [
   "Almost there, don't spill your drink.",
 ];
 
+// Map an SSR-stable id (useId() is the same on server and on the client's
+// hydration pass) into a PHRASES index. Picked at render time so there's
+// no post-hydration state churn.
+function phraseForId(id, phrases) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return phrases[h % phrases.length];
+}
+
 export function Loading({ className = "min-h-[60vh]" }) {
-  // pick once per mount so it's fresh each time a page enters its loading state
-  const [phrase] = useState(
-    () => PHRASES[Math.floor(Math.random() * PHRASES.length)],
-  );
+  // useId() yields the same string on the server and on the client during
+  // hydration, so phraseForId(...) returns the same phrase on both — no
+  // hydration mismatch. Each new mount (route change etc.) gets its own
+  // id and therefore its own phrase, preserving per-instance variety.
+  const id = useId();
+  const phrase = phraseForId(id, PHRASES);
 
   return (
     <div
