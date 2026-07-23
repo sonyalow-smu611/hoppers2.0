@@ -10,7 +10,7 @@ Hoppers is deployed on Vercel and ready to demo. The hosted deployment runs the 
 
 Frontend: [**hoppers2-0.vercel.app**](https://hoppers2-0.vercel.app/)
 
-## Hackathon Pitch
+## Why we built this
 
 Choosing a cafe is often slower than it should be. The "best" option depends on context: distance, budget, purpose, rating, atmosphere, photos, and whether a place fits today's plan. Hoppers turns that scattered decision into a guided experience:
 
