@@ -4,8 +4,9 @@ import { getAuth, clerkClient } from '@clerk/express'
 
 const router = express.Router()
 
+// 'comments' column was dropped from the posts schema; do not select it.
 const POST_COLUMNS =
-  'id, user_id, cafe_id, rating, text_review, visited_at, photos, comments, created_at'
+  'id, user_id, cafe_id, rating, text_review, visited_at, photos, created_at'
 
 function normalizePost(row) {
   return {
@@ -16,7 +17,6 @@ function normalizePost(row) {
     text_review: row.text_review,
     visited_at: row.visited_at,
     photos: row.photos,
-    comments: row.comments,
     created_at: row.created_at,
     cafes: row.cafes ?? null,
     author_name: row.author_name ?? null,
@@ -185,18 +185,12 @@ router.post('/', async (req, res) => {
     photosValue = JSON.stringify([body.photos.trim()])
   }
 
-  const comments =
-    typeof body.comments === 'string' && body.comments.trim()
-      ? body.comments.trim()
-      : null
-
   const base = {
     cafe_id,
     rating,
     text_review,
     visited_at: visitedAt.toISOString(),
     photos: photosValue,
-    comments,
     user_id: userId,
   }
 

@@ -8,7 +8,6 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
   const [rating, setRating] = useState(5);
   const [visitedAt, setVisitedAt] = useState('');
   const [photos, setPhotos] = useState('');
-  const [comments, setComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,7 +29,6 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
         text_review: textReview,
         visited_at: visitedAt || undefined,
         photos,
-        comments,
       });
       onClose();
     } catch (err) {
@@ -84,12 +82,6 @@ export default function NewPost({ cafes = [], onSubmit, onClose }) {
           placeholder="Photo URL"
           value={photos}
           onChange={(e) => setPhotos(e.target.value)}
-          className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-        />
-        <textarea
-          placeholder="Comments"
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
           className="w-full border border-input bg-background rounded px-2 py-1 outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}

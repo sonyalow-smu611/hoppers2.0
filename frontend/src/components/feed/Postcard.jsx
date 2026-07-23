@@ -58,7 +58,7 @@ function PhotoGrid({ urls }) {
 
 export default function PostCard({ post }) {
   const {
-    rating, text_review, visited_at, photos, comments,
+    rating, text_review, visited_at, photos,
     cafe_id, cafes, cafe, author_name, author_avatar, user_id,
   } = post || {};
 
@@ -105,7 +105,6 @@ export default function PostCard({ post }) {
       {/* footer */}
       <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-400">
         {formattedDate && <span>📅 {formattedDate}</span>}
-        {comments && <span className="italic truncate">· &ldquo;{comments}&rdquo;</span>}
       </div>
     </div>
   );
