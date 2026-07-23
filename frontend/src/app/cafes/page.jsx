@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CafeList from "../../components/cafes/CafeList";
 import api from "../../api";
+import { Loading } from "@/components/loading-ui/loading";
 
 export default function Cafes() {
   const [cafes, setCafes] = useState([]);
@@ -26,7 +27,9 @@ export default function Cafes() {
   }, []);
 
   if (loading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading cafes...</p>;
+    return (
+      <Loading />
+    );
   }
 
   if (error) {

@@ -6,6 +6,7 @@ import api from "@/api";
 
 import { JollySearchField } from "@/components/ui/search-field";
 import CafeSidebar from "./CafeSidebar";
+import { Loading } from "@/components/loading-ui/loading";
 
 const defaultCenter = {
   lat: 1.296568,
@@ -148,9 +149,7 @@ export default function MapComponent() {
 
         <div className="relative h-[600px] w-full">
           {!center ? (
-            <div className="flex h-full items-center justify-center rounded-2xl border text-sm text-muted-foreground">
-              Loading map...
-            </div>
+            <Loading className="h-full rounded-2xl border" />
           ) : (
             <div className="h-full w-full overflow-hidden rounded-2xl border">
               <Map

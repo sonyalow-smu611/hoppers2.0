@@ -1,24 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { XIcon } from "lucide-react";
+import {
+  Button as AriaButton,
+  ComboBox,
+  Group,
+  Input as AriaInput,
+  Label as AriaLabel,
+  ListBox,
+  ListBoxItem,
+  Popover,
+  Text,
+} from "react-aria-components";
+import { ChevronDownIcon, XIcon } from "lucide-react";
 import api from "@/api";
 import supabase from "@/lib/supabase";
 import RatingGroupStars from "@/components/ui/rating-group";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const RATING_LABELS = ["Poor", "Fair", "Good", "Very Good", "Excellent"];
+const COMPARE_LIMIT = 1000;
 
 export default function CreatePostModal({ onClose, onCreated }) {
   const { getToken } = useAuth();
   const { user } = useUser();
 
-  const [cafeName, setCafeName] = useState("");
+  // cafes for the dropdown — fetched once when the modal opens
+  const [cafes, setCafes] = useState([]);
+  const [cafeId, setCafeId] = useState(null);
+  const [cafesLoading, setCafesLoading] = useState(true);
+  const [cafesError, setCafesError] = useState(null);
   const [rating, setRating] = useState(0);
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState([]); // File[]
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await api.get("/cafes", {
+          params: { compact: true, limit: COMPARE_LIMIT },
+        });
+        if (active) setCafes(res.data?.cafes ?? []);
+      } catch (err) {
+        if (active) {
+          setCafesError(
+            err?.response?.data?.error ||
+              err?.message ||
+              "Failed to load cafés.",
+          );
+        }
+      } finally {
+        if (active) setCafesLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const displayName =
     user?.username || user?.firstName || user?.fullName || "Guest";
@@ -39,29 +80,31 @@ export default function CreatePostModal({ onClose, onCreated }) {
       .from("post-photos")
       .upload(filePath, file, { contentType: file.type });
     if (error) throw error;
-    return supabase.storage.from("post-photos").getPublicUrl(filePath).data.publicUrl;
+    return supabase.storage
+      .from("post-photos")
+      .getPublicUrl(filePath).data.publicUrl;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!cafeName || !rating || !description) {
-      return alert("Please fill in the cafe, your rating and a review.");
+    if (!cafeId || !rating || !description) {
+      return alert(
+        "Please choose a café, give a rating and write a review.",
+      );
     }
 
     setSubmitting(true);
     try {
-      // 1. upload all photos directly to Supabase Storage
       const photoUrls = [];
       for (const file of photos) {
         photoUrls.push(await uploadOne(file));
       }
 
-      // 2. create the post (photos as array, author captured from Clerk)
       const token = await getToken();
       await api.post(
         "/posts",
         {
-          cafe_name: cafeName,
+          cafe_id: cafeId,
           rating,
           description,
           visited_at: new Date().toISOString(),
@@ -81,6 +124,19 @@ export default function CreatePostModal({ onClose, onCreated }) {
       setSubmitting(false);
     }
   }
+
+  const noCafes = !cafesLoading && !cafesError && cafes.length === 0;
+  const cafePickerDisabled = cafesLoading || !!cafesError || noCafes;
+  const submitDisabled =
+    submitting || cafesLoading || !!cafesError || !cafeId;
+
+  const cafePlaceholder = cafesLoading
+    ? "Loading cafés…"
+    : cafesError
+      ? "Couldn’t load cafés"
+      : noCafes
+        ? "No cafés available yet"
+        : "Choose a café…";
 
   return (
     <div
@@ -103,11 +159,17 @@ export default function CreatePostModal({ onClose, onCreated }) {
         {/* header: real Clerk avatar + name */}
         <div className="flex items-center gap-3 mb-5">
           <Avatar className="size-10">
-            {user?.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayName} /> : null}
-            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+            {user?.imageUrl ? (
+              <AvatarImage src={user.imageUrl} alt={displayName} />
+            ) : null}
+            <AvatarFallback>
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Posting as</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Posting as
+            </p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {displayName}
             </p>
@@ -119,18 +181,64 @@ export default function CreatePostModal({ onClose, onCreated }) {
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* cafe name */}
+          {/* cafe picker (fetched from /cafes?compact=true) */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Cafe
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Nylon Coffee Roasters"
-              value={cafeName}
-              onChange={(e) => setCafeName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
+            <AriaLabel className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Café
+            </AriaLabel>
+            <ComboBox
+              isDisabled={cafePickerDisabled}
+              items={cafes}
+              selectedKey={cafeId}
+              onSelectionChange={(key) => setCafeId(key ?? null)}
+              placeholder={cafePlaceholder}
+              className="w-full"
+            >
+              <Group className="flex w-full items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm transition-colors focus-within:ring-2 focus-within:ring-blue-500 data-[disabled]:opacity-60">
+                <AriaInput className="flex-1 bg-transparent outline-none dark:text-white placeholder:text-gray-400" />
+                <AriaButton
+                  className="text-gray-400 ml-auto outline-none data-[disabled]:opacity-50"
+                  aria-label="Open café list"
+                >
+                  <ChevronDownIcon className="w-4 h-4" />
+                </AriaButton>
+              </Group>
+              <Popover
+                placement="bottom start"
+                className="z-[60] w-[var(--trigger-width)] max-w-[28rem] max-h-72 overflow-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg outline-none"
+              >
+                <ListBox className="outline-none p-1">
+                  {cafes.map((cafe) => (
+                    <ListBoxItem
+                      key={cafe.id}
+                      id={cafe.id}
+                      textValue={cafe.name}
+                      className="px-2 py-1.5 mx-1 rounded text-sm cursor-pointer text-gray-900 dark:text-gray-100 outline-none data-[focused]:bg-blue-100 dark:data-[focused]:bg-gray-700 data-[selected]:bg-blue-600 data-[selected]:text-white data-[focused]:data-[selected]:bg-blue-700"
+                    >
+                      <span className="block truncate">{cafe.name}</span>
+                      {cafe.address ? (
+                        <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {cafe.address}
+                        </span>
+                      ) : null}
+                    </ListBoxItem>
+                  ))}
+                </ListBox>
+              </Popover>
+              {cafesError ? (
+                <Text
+                  slot="errorMessage"
+                  className="text-xs text-red-600 mt-1"
+                >
+                  {cafesError}
+                </Text>
+              ) : null}
+            </ComboBox>
+            {!cafesError && noCafes ? (
+              <p className="text-xs text-gray-500 mt-1">
+                No cafés are available to review yet. Please check back later.
+              </p>
+            ) : null}
           </div>
 
           {/* rating */}
@@ -197,10 +305,17 @@ export default function CreatePostModal({ onClose, onCreated }) {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            disabled={submitDisabled}
+            title={
+              cafesError
+                ? "Cannot post: cafés failed to load"
+                : !cafeId
+                  ? "Please choose a café first"
+                  : undefined
+            }
+            className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "Posting..." : "Post review"}
+            {submitting ? "Posting…" : "Post review"}
           </button>
         </form>
       </div>

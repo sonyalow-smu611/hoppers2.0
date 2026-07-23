@@ -1,6 +1,6 @@
 import express from 'express'
-import supabase from '../../lib/supabase.js'
-import { searchNearbyCafes } from '../../lib/places.js'
+import supabase, { supabaseServiceRole } from '../../lib/supabase.js'
+import { searchNearbyCafes, searchPlaceByName } from '../../lib/places.js'
 import { upsertPlacesAsCafes } from '../../lib/cafeSync.js'
 
 const router = express.Router()
@@ -14,6 +14,12 @@ function syncPlacesInBackground(places) {
   upsertPlacesAsCafes(places).catch((error) => {
     console.error('Supabase cafe sync error:', error)
   })
+}
+
+function placePhotoUrl(place) {
+  const photoName = place?.photos?.[0]?.name
+  if (!photoName || !process.env.GOOGLE_PLACES_API_KEY) return null
+  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${process.env.GOOGLE_PLACES_API_KEY}`
 }
 
 router.get('/photo', async (req, res) => {
@@ -55,12 +61,25 @@ router.get('/photo', async (req, res) => {
   }
 })
 
-// get all cafes
+// list cafes for the dropdown picker (and any other lightweight consumer)
+//   ?compact=true  -> only id, name, address (smaller payload)
+//   ?limit=N       -> cap rows returned, max 1000
+// rows are sorted by name ascending so the UI is deterministic.
+// Default (no params) returns ALL cafes in name-asc order — keeps
+// backward-compat with callers that expect an unpaginated list.
 router.get('/', async (req, res) => {
-  const { data, error } = await supabase
-    .from('cafes')
-    .select('*')
+  const compact = String(req.query.compact ?? '').toLowerCase() === 'true'
+  const requestedLimit = Number(req.query.limit)
+  const hasExplicitLimit = Number.isInteger(requestedLimit) && requestedLimit > 0
+  const limit = hasExplicitLimit ? Math.min(requestedLimit, 1000) : null
 
+  let query = supabase
+    .from('cafes')
+    .select(compact ? 'id, name, address' : '*')
+    .order('name', { ascending: true })
+  if (limit !== null) query = query.limit(limit)
+
+  const { data, error } = await query
   if (error) return res.status(500).json({ error: error.message })
   res.json({ cafes: data })
 })
@@ -93,6 +112,51 @@ router.post('/sync', async (req, res) => {
       error: err.message || 'Failed to sync cafes.',
     })
   }
+})
+
+// backfill: resolve real Google Places photos for cafes that are missing one
+router.post('/backfill-photos', async (req, res) => {
+  if (!supabaseServiceRole) {
+    return res.status(503).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is required' })
+  }
+  const { data: cafes, error } = await supabaseServiceRole
+    .from('cafes')
+    .select('id, name, picture')
+  if (error) return res.status(500).json({ error: error.message })
+
+  const missing = (cafes || []).filter((c) => !c.picture || !c.picture.trim())
+  let updated = 0
+  let skipped = 0
+  const failed = []
+
+  for (const cafe of missing) {
+    try {
+      const place = await searchPlaceByName(cafe.name)
+      const photoUrl = placePhotoUrl(place)
+      if (!photoUrl) {
+        skipped++
+        continue
+      }
+      // only update picture (these seed rows may duplicate a synced cafe's place_id,
+      // which has a unique constraint — so we don't touch place_id here)
+      const patch = { picture: photoUrl }
+      const { error: upErr } = await supabaseServiceRole
+        .from('cafes')
+        .update(patch)
+        .eq('id', cafe.id)
+      if (upErr) {
+        failed.push(`${cafe.name}: ${upErr.message}`)
+        continue
+      }
+      updated++
+      // be gentle with the Places API
+      await new Promise((r) => setTimeout(r, 120))
+    } catch (e) {
+      failed.push(`${cafe.name}: ${e.message}`)
+    }
+  }
+
+  res.json({ checked: missing.length, updated, skipped, failed })
 })
 
 // look up a single cafe by name (used by the map sidebar's "read reviews")

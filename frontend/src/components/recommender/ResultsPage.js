@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
+import { Loading } from "@/components/loading-ui/loading";
 
 const BUDGET_LABELS = {
   1: "Under $15 / pax",
@@ -154,11 +155,16 @@ export default function ResultsPage() {
     }
   }
 
-  if (!prefs) return <p className="p-8 text-muted-foreground">Loading...</p>;
-  if (loading)
+  if (!prefs) {
     return (
-      <p className="p-8 text-muted-foreground">Finding cafes near you...</p>
+      <Loading />
     );
+  }
+  if (loading) {
+    return (
+      <Loading />
+    );
+  }
   if (error) return <p className="p-8 text-red-600">{error}</p>;
 
   return (
