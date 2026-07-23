@@ -40,7 +40,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
     let active = true;
     (async () => {
       try {
-        const res = await api.get("/cafes", {
+        const res = await api.get("/api/cafes", {
           params: { compact: true, limit: COMPARE_LIMIT },
         });
         if (active) setCafes(res.data?.cafes ?? []);

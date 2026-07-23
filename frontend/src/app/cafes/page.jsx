@@ -13,7 +13,7 @@ export default function Cafes() {
   useEffect(() => {
     async function fetchCafes() {
       try {
-        const response = await api.get("/cafes");
+        const response = await api.get("/api/cafes");
         setCafes(response.data.cafes ?? []);
       } catch (err) {
         console.error("Failed to load cafes:", err.message);

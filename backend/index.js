@@ -34,6 +34,12 @@ app.get('/protected', async (req, res) => {
 })
 
 app.use('/lists', listRoutes)
+// Mount the cafes router at BOTH /api/cafes (newer, page-collision-safe
+// callers like the CreatePostModal dropdown) and /cafes (the older
+// /cafes/sync, /cafes/by-name etc. — those don't collide because the bare
+// /cafes page is the only path that matches frontend/src/app/cafes/page.jsx
+// before rewrites run).
+app.use('/api/cafes', cafeRoutes)
 app.use('/cafes', cafeRoutes)
 app.use('/posts', postRoutes)
 app.use('/users', userRoutes)
