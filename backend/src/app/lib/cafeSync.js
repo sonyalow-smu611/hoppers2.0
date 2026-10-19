@@ -44,6 +44,47 @@ export function mapPlaceToCafeRow(place) {
   }
 }
 
+function normalizeCafeValue(value) {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function escapeIlikeValue(value) {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
+
+async function upsertPlaceRow(row) {
+  const { error } = await supabaseServiceRole
+    .from('cafes')
+    .upsert(row, { onConflict: 'place_id' })
+
+  if (!error) return
+  if (error.code !== '23505' || !error.message?.includes('cafes_seed_unique')) {
+    throw error
+  }
+
+  const { data: candidates, error: lookupError } = await supabaseServiceRole
+    .from('cafes')
+    .select('id, name, address')
+    .ilike('name', escapeIlikeValue(row.name))
+
+  if (lookupError) throw lookupError
+
+  const matchingCafe = (candidates ?? []).find(
+    (cafe) =>
+      normalizeCafeValue(cafe.name) === normalizeCafeValue(row.name) &&
+      normalizeCafeValue(cafe.address) === normalizeCafeValue(row.address),
+  )
+
+  if (!matchingCafe) throw error
+
+  const { error: updateError } = await supabaseServiceRole
+    .from('cafes')
+    .update(row)
+    .eq('id', matchingCafe.id)
+
+  if (updateError) throw updateError
+}
+
 export async function upsertPlacesAsCafes(places) {
   if (!Array.isArray(places) || places.length === 0) {
     return
@@ -59,12 +100,20 @@ export async function upsertPlacesAsCafes(places) {
     return
   }
 
-  const { error } = await supabaseServiceRole
-    .from('cafes')
-    .upsert(rows, { onConflict: 'place_id' })
+  try {
+    const { error } = await supabaseServiceRole
+      .from('cafes')
+      .upsert(rows, { onConflict: 'place_id' })
 
-  if (error) {
-    throw error
+    if (!error) return
+    if (error.code !== '23505' || !error.message?.includes('cafes_seed_unique')) {
+      throw error
+    }
+  } catch (error) {
+    if (error.code !== '23505' || !error.message?.includes('cafes_seed_unique')) {
+      throw error
+    }
   }
-}
 
+  await Promise.all(rows.map(upsertPlaceRow))
+}

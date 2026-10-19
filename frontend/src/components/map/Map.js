@@ -37,8 +37,6 @@ export default function MapComponent() {
   ).map(withRating);
 
   async function fetchNearbyCafes(lat, lng) {
-    setLoadError("");
-
     const { data } = await api.post("/cafes/sync", {
       latitude: lat,
       longitude: lng,
@@ -47,6 +45,7 @@ export default function MapComponent() {
 
     // console.log("Places API response:", data);
     const places = (data.cafes || []).map(withRating);
+    setLoadError("");
     setAllCafes(places);
     setCafes(places);
   }
@@ -71,25 +70,12 @@ export default function MapComponent() {
   const geoOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 };
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      (async () => {
-        await fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng);
-      })().catch(handleCafeLoadError);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationStatus("");
-        applyPosition(position.coords.latitude, position.coords.longitude);
-      },
-      onPositionError,
-      geoOptions,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    Promise.resolve()
+      .then(() => fetchNearbyCafes(defaultCenter.lat, defaultCenter.lng))
+      .catch(handleCafeLoadError);
   }, []);
 
-  // triggered by the "Use my location" button — a real user gesture, so the
-  // browser will reliably show the location prompt (and re-show it if allowed)
+  // Only request browser location after an explicit user gesture.
   function locateMe() {
     setLocationStatus("prompting");
     if (!navigator.geolocation) {
