@@ -1,8 +1,6 @@
 import express from 'express'
-import { getAuth } from '@clerk/express'
-import supabase, { getAdminSupabase } from '../../lib/supabase.js'
-import { getAuth } from '@clerk/express'
 import { getAuth, clerkClient } from '@clerk/express'
+import supabase, { getAdminSupabase } from '../../lib/supabase.js'
 
 const router = express.Router()
 
@@ -133,7 +131,7 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { isAuthenticated } = getAuth(req)
+  const { isAuthenticated, userId } = getAuth(req)
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'User not authenticated' })
   }
@@ -169,11 +167,6 @@ router.post('/', async (req, res) => {
     cafe_id = cafe.id
   }
 
-  const rating = Number(body.rating)
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return res.status(400).json({ error: 'rating must be an integer from 1 to 5' })
-  }
-
   // accept either text_review (direct) or description (create-post modal)
   const text_review = (
     typeof body.text_review === 'string' ? body.text_review : (body.description || '')
@@ -195,9 +188,6 @@ router.post('/', async (req, res) => {
     photosValue = JSON.stringify([body.photos.trim()])
   }
 
-  // NOTE: posts.user_id has no FK and there is no `users` table yet, so we use a
-  // placeholder author. Swap for a real Clerk->users lookup once that table exists.
-  const PLACEHOLDER_USER_ID = 1
   let adminSupabase
   try {
     adminSupabase = getAdminSupabase()
@@ -219,7 +209,7 @@ router.post('/', async (req, res) => {
   }
 
   // try with denormalized author columns; fall back if they don't exist yet
-  const run = (payload) => supabase.from('posts').insert(payload).select('id').single()
+  const run = (payload) => adminSupabase.from('posts').insert(payload).select('id').single()
   let result = await run({
     ...base,
     author_name: body.author_name || null,
