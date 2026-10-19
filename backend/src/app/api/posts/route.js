@@ -1,5 +1,7 @@
 import express from 'express'
-import supabase from '../../lib/supabase.js'
+import { getAuth } from '@clerk/express'
+import supabase, { getAdminSupabase } from '../../lib/supabase.js'
+import { getAuth } from '@clerk/express'
 import { getAuth, clerkClient } from '@clerk/express'
 
 const router = express.Router()
@@ -131,7 +133,15 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { userId } = getAuth(req)
+  const { isAuthenticated } = getAuth(req)
+  if (!isAuthenticated) {
+    return res.status(401).json({ error: 'User not authenticated' })
+  }
+
+  const {
+    cafe_name, rating, description, visited_at,
+    photos, author_name, author_avatar,
+  } = req.body || {}
 
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' })
@@ -185,6 +195,20 @@ router.post('/', async (req, res) => {
     photosValue = JSON.stringify([body.photos.trim()])
   }
 
+  // NOTE: posts.user_id has no FK and there is no `users` table yet, so we use a
+  // placeholder author. Swap for a real Clerk->users lookup once that table exists.
+  const PLACEHOLDER_USER_ID = 1
+  let adminSupabase
+  try {
+    adminSupabase = getAdminSupabase()
+  } catch (error) {
+    console.error('[posts] admin client unavailable:', error)
+    return res.status(500).json({ error: 'Post creation is not configured on the server' })
+  }
+  const comments =
+    typeof body.comments === 'string' && body.comments.trim()
+      ? body.comments.trim()
+      : null
   const base = {
     cafe_id,
     rating,
