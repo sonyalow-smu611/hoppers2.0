@@ -14,6 +14,13 @@ pnpm dev
 bun dev
 ```
 
+## Post creation configuration
+
+Set `SUPABASE_SERVICE_ROLE_KEY` in the backend environment. It is used only by
+the authenticated post-creation route to insert rows that the public Supabase
+key is blocked from inserting by row-level security. Keep this key server-side;
+never add it to the frontend environment.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.

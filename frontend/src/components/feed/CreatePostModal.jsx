@@ -19,6 +19,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState([]); // File[]
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const displayName =
     user?.username || user?.firstName || user?.fullName || "Guest";
@@ -44,6 +45,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setSubmitError("");
     if (!cafeName || !rating || !description) {
       return alert("Please fill in the cafe, your rating and a review.");
     }
@@ -76,7 +78,9 @@ export default function CreatePostModal({ onClose, onCreated }) {
       onClose?.();
     } catch (error) {
       console.error("Failed to create post:", error);
-      alert("Something went wrong. Please try again.");
+      setSubmitError(
+        error.response?.data?.error || error.message || "Something went wrong. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -119,6 +123,11 @@ export default function CreatePostModal({ onClose, onCreated }) {
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {submitError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {submitError}
+            </p>
+          )}
           {/* cafe name */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">

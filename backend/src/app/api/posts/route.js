@@ -1,5 +1,6 @@
 import express from 'express'
-import supabase from '../../lib/supabase.js'
+import { getAuth } from '@clerk/express'
+import supabase, { getAdminSupabase } from '../../lib/supabase.js'
 
 const router = express.Router()
 
@@ -21,6 +22,11 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
+  const { isAuthenticated } = getAuth(req)
+  if (!isAuthenticated) {
+    return res.status(401).json({ error: 'User not authenticated' })
+  }
+
   const {
     cafe_name, rating, description, visited_at,
     photos, author_name, author_avatar,
@@ -54,6 +60,14 @@ router.post('/', async (req, res) => {
   // NOTE: posts.user_id has no FK and there is no `users` table yet, so we use a
   // placeholder author. Swap for a real Clerk->users lookup once that table exists.
   const PLACEHOLDER_USER_ID = 1
+  let adminSupabase
+  try {
+    adminSupabase = getAdminSupabase()
+  } catch (error) {
+    console.error('[posts] admin client unavailable:', error)
+    return res.status(500).json({ error: 'Post creation is not configured on the server' })
+  }
+
   const base = {
     cafe_id: cafe.id,
     rating: Number(rating),
@@ -64,7 +78,7 @@ router.post('/', async (req, res) => {
   }
 
   // try with denormalized author columns; fall back if they don't exist yet
-  const run = (payload) => supabase.from('posts').insert(payload).select().single()
+  const run = (payload) => adminSupabase.from('posts').insert(payload).select().single()
   let result = await run({ ...base, author_name: author_name || null, author_avatar: author_avatar || null })
   if (result.error && /author_(name|avatar)/i.test(result.error.message)) {
     result = await run(base)
