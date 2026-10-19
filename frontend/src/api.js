@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-// Create an instance targeting your backend server URL
+const baseURL =
+  typeof window === 'undefined'
+    ? process.env.BACKEND_URL || 'http://localhost:4000'
+    : process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
 const api = axios.create({
-  baseURL: 'http://localhost:4000', // Replace with your backend port/URL
+  baseURL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ import listRoutes from './src/app/api/lists/route.js'
 import cafeRoutes from './src/app/api/cafes/route.js'
 import postRoutes from './src/app/api/posts/route.js'
 import userRoutes from './src/app/api/users/route.js'
+import aiRoutes from './src/app/ai.js'
 import { clerkMiddleware, clerkClient, getAuth } from '@clerk/express'
 
 const app = express()
@@ -36,6 +37,7 @@ app.use('/lists', listRoutes)
 app.use('/cafes', cafeRoutes)
 app.use('/posts', postRoutes)
 app.use('/users', userRoutes)
+app.use('/api', aiRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

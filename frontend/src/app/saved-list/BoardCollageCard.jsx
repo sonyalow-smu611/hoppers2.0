@@ -75,7 +75,7 @@ export default function BoardCollageCard({ board }) {
             userId={board.user_id}
             title={board.title}
             isPrivate={board.list_type}
-            className="bg-white/90 shadow-sm hover:bg-white"
+            className="bg-card/90 shadow-sm hover:bg-card"
           />
         </div>
       </div>
