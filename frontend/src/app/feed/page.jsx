@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import api from "../../api";
 import FeedList from "@/components/feed/FeedList";
 import CreatePostModal from "@/components/feed/CreatePostModal";
+import { Loading } from "@/components/loading-ui/loading";
 
 export default function Page() {
   const { getToken } = useAuth();
@@ -33,7 +34,11 @@ export default function Page() {
     };
   }, [getToken, reloadKey]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <Loading />
+    );
+  }
 
   return (
     <div>

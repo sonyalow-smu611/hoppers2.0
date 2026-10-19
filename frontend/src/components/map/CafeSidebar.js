@@ -23,18 +23,11 @@ export default function CafeSidebar({ cafes, selectedCafe, onSelectCafe }) {
     const name = cafe?.displayName?.text;
     if (!name) return;
     try {
-      const res = await api.get("/cafes");
-      const match = (res.data.cafes || []).find(
-        (c) => (c.name || "").toLowerCase() === name.toLowerCase(),
-      );
-      if (match) {
-        router.push(`/cafes/${match.id}`);
-      } else {
-        alert(`No reviews for "${name}" yet. Be the first to review it on the feed!`);
-      }
+      const res = await api.get(`/cafes/by-name?name=${encodeURIComponent(name)}`);
+      router.push(`/cafe/${res.data.cafe.id}`);
     } catch (e) {
       console.error("Failed to load reviews:", e);
-      alert("Could not load reviews right now.");
+      alert(`No reviews for "${name}" yet. Be the first to review it on the feed!`);
     }
   }
 

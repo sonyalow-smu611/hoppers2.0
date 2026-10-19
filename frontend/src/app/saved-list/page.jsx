@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import api from "@/api";
 import { useUser, useAuth } from "@clerk/nextjs";
 import SavedCafeCard from "@/components/cafes/SavedCafeCard";
+import { Loading } from "@/components/loading-ui/loading";
 
 export default function SavedListPage() {
   const { isLoaded, isSignedIn } = useUser();
@@ -46,7 +47,9 @@ export default function SavedListPage() {
   }
 
   if (loading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading...</p>;
+    return (
+      <Loading />
+    );
   }
 
   return (
