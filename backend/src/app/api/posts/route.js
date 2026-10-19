@@ -1,11 +1,6 @@
 import express from 'express'
-<<<<<<< HEAD
 import { getAuth } from '@clerk/express'
 import supabase, { getAdminSupabase } from '../../lib/supabase.js'
-=======
-import supabase from '../../lib/supabase.js'
-import { getAuth } from '@clerk/express'
->>>>>>> f08165497e7e90524e5feaa7a01126f6e448c593
 
 const router = express.Router()
 
@@ -154,7 +149,6 @@ router.post('/', async (req, res) => {
     photosValue = JSON.stringify([body.photos.trim()])
   }
 
-<<<<<<< HEAD
   // NOTE: posts.user_id has no FK and there is no `users` table yet, so we use a
   // placeholder author. Swap for a real Clerk->users lookup once that table exists.
   const PLACEHOLDER_USER_ID = 1
@@ -165,12 +159,6 @@ router.post('/', async (req, res) => {
     console.error('[posts] admin client unavailable:', error)
     return res.status(500).json({ error: 'Post creation is not configured on the server' })
   }
-=======
-  const comments =
-    typeof body.comments === 'string' && body.comments.trim()
-      ? body.comments.trim()
-      : null
->>>>>>> f08165497e7e90524e5feaa7a01126f6e448c593
 
   const base = {
     cafe_id,
@@ -183,17 +171,12 @@ router.post('/', async (req, res) => {
   }
 
   // try with denormalized author columns; fall back if they don't exist yet
-<<<<<<< HEAD
-  const run = (payload) => adminSupabase.from('posts').insert(payload).select().single()
-  let result = await run({ ...base, author_name: author_name || null, author_avatar: author_avatar || null })
-=======
   const run = (payload) => supabase.from('posts').insert(payload).select('id').single()
   let result = await run({
     ...base,
     author_name: body.author_name || null,
     author_avatar: body.author_avatar || null,
   })
->>>>>>> f08165497e7e90524e5feaa7a01126f6e448c593
   if (result.error && /author_(name|avatar)/i.test(result.error.message)) {
     result = await run(base)
   }
