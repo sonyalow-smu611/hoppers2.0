@@ -89,7 +89,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitError("");
-    if (!cafeName || !rating || !description) {
+    if (!cafeId || !rating || !description) {
       return alert("Please fill in the cafe, your rating and a review.");
     }
 
