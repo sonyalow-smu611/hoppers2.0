@@ -1,11 +1,14 @@
 import express from 'express'
 import { getAuth } from '@clerk/express'
 import supabase, { getAdminSupabase } from '../../lib/supabase.js'
+import { getAuth } from '@clerk/express'
+import { getAuth, clerkClient } from '@clerk/express'
 
 const router = express.Router()
 
+// 'comments' column was dropped from the posts schema; do not select it.
 const POST_COLUMNS =
-  'id, user_id, cafe_id, rating, text_review, visited_at, photos, comments, created_at'
+  'id, user_id, cafe_id, rating, text_review, visited_at, photos, created_at'
 
 function normalizePost(row) {
   return {
@@ -16,7 +19,6 @@ function normalizePost(row) {
     text_review: row.text_review,
     visited_at: row.visited_at,
     photos: row.photos,
-    comments: row.comments,
     created_at: row.created_at,
     cafes: row.cafes ?? null,
     author_name: row.author_name ?? null,
@@ -30,15 +32,28 @@ function isMissingRelationshipError(error) {
 
 // accept an optional cafe_id filter (used by the /cafes/[id] reviews page)
 async function selectPosts(cafeId) {
+  // Try with author columns first
+  const selectWithAuthor = `${POST_COLUMNS}, author_name, author_avatar, cafes(*)`
+  let withCafeAndAuthor = supabase
+    .from('posts')
+    .select(selectWithAuthor)
+    .order('created_at', { ascending: false })
+  if (cafeId) withCafeAndAuthor = withCafeAndAuthor.eq('cafe_id', cafeId)
+  
+  let res = await withCafeAndAuthor
+  if (!res.error) return res
+
+  // Fallback: Try without author columns (if they don't exist)
   const select = `${POST_COLUMNS}, cafes(*)`
   let withCafe = supabase
     .from('posts')
     .select(select)
     .order('created_at', { ascending: false })
   if (cafeId) withCafe = withCafe.eq('cafe_id', cafeId)
-  const res = await withCafe
+  res = await withCafe
   if (!res.error || !isMissingRelationshipError(res.error)) return res
 
+  // Final fallback: Plain posts without cafe relationship
   let plain = supabase
     .from('posts')
     .select(POST_COLUMNS)
@@ -65,6 +80,36 @@ async function selectPostById(id) {
   return supabase.from('posts').select(POST_COLUMNS).eq('id', id).single()
 }
 
+// resolve Clerk user ids -> display name/avatar, filling in any missing author info
+async function attachClerkAuthors(posts) {
+  const ids = [...new Set(
+    (posts || [])
+      .map((p) => p.user_id)
+      .filter((id) => typeof id === 'string' && id.startsWith('user_'))
+  )]
+  if (ids.length === 0) return posts
+  try {
+    const resp = await clerkClient.users.getUserList({ userId: ids })
+    const users = Array.isArray(resp) ? resp : (resp?.data || [])
+    const map = new Map()
+    for (const u of users) {
+      const name = u.username || u.firstName || u.fullName || null
+      map.set(u.id, { name, imageUrl: u.imageUrl || null })
+    }
+    return posts.map((p) => {
+      const found = p.user_id ? map.get(p.user_id) : null
+      return {
+        ...p,
+        author_name: p.author_name || (found?.name ?? null),
+        author_avatar: p.author_avatar || (found?.imageUrl ?? null),
+      }
+    })
+  } catch (err) {
+    console.error('[posts] clerk author resolve failed:', err)
+    return posts
+  }
+}
+
 // get all posts (+ cafes), optionally filtered by ?cafe_id=
 router.get('/', async (req, res) => {
   const cafeId = req.query.cafe_id
@@ -80,8 +125,9 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ error: cafesResult.error.message })
   }
 
+  const posts = await attachClerkAuthors(postsResult.data.map(normalizePost))
   res.json({
-    posts: postsResult.data.map(normalizePost),
+    posts,
     cafes: cafesResult.data,
   })
 })
@@ -159,14 +205,16 @@ router.post('/', async (req, res) => {
     console.error('[posts] admin client unavailable:', error)
     return res.status(500).json({ error: 'Post creation is not configured on the server' })
   }
-
+  const comments =
+    typeof body.comments === 'string' && body.comments.trim()
+      ? body.comments.trim()
+      : null
   const base = {
     cafe_id,
     rating,
     text_review,
     visited_at: visitedAt.toISOString(),
     photos: photosValue,
-    comments,
     user_id: userId,
   }
 
