@@ -7,18 +7,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-let adminClient
+export const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+  : null
 
 export function getAdminSupabase() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
-
-  if (!adminClient) {
-    adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-  }
-  return adminClient
+  if (!supabaseServiceRole) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
+  return supabaseServiceRole
 }
 
 export default supabase
