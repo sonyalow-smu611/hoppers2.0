@@ -15,13 +15,13 @@ const isBackendProxyRoute = createRouteMatcher([
   '/cafes/(.*)', 
 ])
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isBackendProxyRoute(req)) {
     return
   }
 
   if (!isPublicRoute(req)) {
-    auth.protect()
+    await auth.protect()
   }
 })
 
