@@ -22,7 +22,7 @@ export default function BoardCafeCard({ cafe }) {
 
   return (
     <div>
-      <CafeCard cafe={cafe} />
+      <CafeCard cafe={cafe} showSave={false} />
       <div className="flex gap-2 px-4 pb-4">
         <Button
           className="flex-1"
